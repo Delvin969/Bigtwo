@@ -1,4 +1,4 @@
-x<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1145,12 +1145,12 @@ function usingPublicBackend(){
 async function kvdbGet(key){
   const res = await fetch(`https://kvdb.io/${KVDB_BUCKET_ID}/${encodeURIComponent(key)}`);
   if(res.status===404) return null;
-  if(!res.ok) throw new Error('kvdb.io GET failed: HTTP '+res.status);
+  if(!res.ok){ const body = await res.text().catch(()=> ''); throw new Error(`kvdb.io GET failed: HTTP ${res.status} ${body}`.trim()); }
   return await res.text();
 }
 async function kvdbSet(key, value){
   const res = await fetch(`https://kvdb.io/${KVDB_BUCKET_ID}/${encodeURIComponent(key)}`, {method:'POST', body:value});
-  if(!res.ok) throw new Error('kvdb.io POST failed: HTTP '+res.status);
+  if(!res.ok){ const body = await res.text().catch(()=> ''); throw new Error(`kvdb.io POST failed: HTTP ${res.status} ${body}`.trim()); }
   return true;
 }
 async function kvdbCreateBucket(email){
@@ -1403,7 +1403,7 @@ document.getElementById('btn-create-room').addEventListener('click', async ()=>{
     game: null
   };
   const ok = await setRoom(code, room);
-  if(!ok){ setMenuStatus('Could not create room. Try again.', true); return; }
+  if(!ok){ setMenuStatus('Could not create room: '+(lastStorageError||'unknown error'), true); return; }
   mode='online'; isHost=true; mySeatIndex=0; roomCode=code;
   setMenuStatus('');
   enterLobby(room);
@@ -1427,7 +1427,7 @@ document.getElementById('btn-join-room').addEventListener('click', async ()=>{
   }
   room.seq = (room.seq||0)+1;
   const ok = await setRoom(code, room);
-  if(!ok){ setMenuStatus('Could not join room. Try again.', true); return; }
+  if(!ok){ setMenuStatus('Could not join room: '+(lastStorageError||'unknown error'), true); return; }
   mode='online'; isHost=(room.hostClientId===myClientId); mySeatIndex=idx; roomCode=code;
   setMenuStatus('');
   enterLobby(room);
