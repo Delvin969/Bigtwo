@@ -519,6 +519,7 @@
     </div>
     <div class="status-msg" id="menu-status"></div>
     <div class="caveat">Multiplayer syncs through shared cloud storage — moves are last-write-wins, so it's built for playing with friends rather than tamper-proof play.</div>
+    <div class="platform-skip" id="btn-toggle-setup">Multiplayer backend not working? Set it up / regenerate it here</div>
  
     <div class="panel" id="setup-backend-panel" hidden>
       <h3 style="cursor:default;">Set Up Multiplayer</h3>
@@ -529,9 +530,13 @@
         hosts this file — click below to create one, then paste the ID it gives you into
         <span class="mono">KVDB_BUCKET_ID</span> near the top of the &lt;script&gt; tag in this
         file and re-upload it. After that, every visitor can create and join rooms.
+        <br><br><b>Leave the email field blank</b> to get a bucket that works immediately.
+        Adding an email lets you manage the bucket later on kvdb.io, but kvdb.io then
+        requires you to verify that email before it will accept writes — so only fill
+        it in if you're ready to check that inbox right away.
       </div>
       <div class="field-row">
-        <input type="text" id="setup-email-input" placeholder="Your email (optional, for recovery)">
+        <input type="text" id="setup-email-input" placeholder="Leave blank for instant setup">
         <button id="btn-create-backend">Create Backend</button>
       </div>
       <div id="setup-backend-result" style="margin-top:8px;"></div>
@@ -1128,7 +1133,7 @@ function showScreen(id){
   This bucket has no password, so anyone who guesses a room code can read/write
   that room (fine for casual play with friends, same as the in-Claude version).
 */
-const KVDB_BUCKET_ID = 'PCBAK9LvcuHTQ4Mdemw8oW';
+const KVDB_BUCKET_ID = ''; // <-- paste your bucket ID here (leave email blank when creating it)
  
 let lastStorageError = null;
  
@@ -1497,15 +1502,24 @@ document.getElementById('btn-platform-pc').addEventListener('click', ()=> choose
 document.getElementById('btn-platform-mobile').addEventListener('click', ()=> choosePlatform('mobile'));
 document.getElementById('btn-platform-skip').addEventListener('click', ()=> showScreen('screen-menu'));
  
+document.getElementById('btn-toggle-setup').addEventListener('click', ()=>{
+  const panel = document.getElementById('setup-backend-panel');
+  panel.hidden = !panel.hidden;
+});
+ 
 document.getElementById('btn-create-backend').addEventListener('click', async ()=>{
   const email = document.getElementById('setup-email-input').value.trim();
   const resultEl = document.getElementById('setup-backend-result');
   resultEl.innerHTML = '<span class="status-msg">Creating…</span>';
   try{
     const bucketId = await kvdbCreateBucket(email);
+    const verifyNote = email
+      ? `<div class="status-msg error" style="margin-top:6px;">You entered an email, so kvdb.io will require you to verify it at <a href="https://kvdb.io/login" target="_blank" rel="noopener" style="color:inherit;">kvdb.io/login</a> before writes work. Leave the field blank and click again for a bucket that works right away.</div>`
+      : `<div class="status-msg" style="margin-top:6px;">No email attached — this bucket works immediately.</div>`;
     resultEl.innerHTML = `
       <div class="status-msg">Bucket created! Paste this into <span class="mono">KVDB_BUCKET_ID</span> near the top of the script, save, and re-upload:</div>
       <div class="room-code-display" style="font-size:16px;letter-spacing:2px;padding:10px;margin-top:6px;word-break:break-all;">${escapeHtml(bucketId)}</div>
+      ${verifyNote}
     `;
   }catch(e){
     resultEl.innerHTML = `<span class="status-msg error">Could not create a backend: ${escapeHtml((e&&e.message)?e.message:String(e))}</span>`;
