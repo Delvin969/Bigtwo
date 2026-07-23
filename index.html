@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+x<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1149,8 +1149,8 @@ async function kvdbGet(key){
   return await res.text();
 }
 async function kvdbSet(key, value){
-  const res = await fetch(`https://kvdb.io/${KVDB_BUCKET_ID}/${encodeURIComponent(key)}`, {method:'PUT', body:value});
-  if(!res.ok) throw new Error('kvdb.io PUT failed: HTTP '+res.status);
+  const res = await fetch(`https://kvdb.io/${KVDB_BUCKET_ID}/${encodeURIComponent(key)}`, {method:'POST', body:value});
+  if(!res.ok) throw new Error('kvdb.io POST failed: HTTP '+res.status);
   return true;
 }
 async function kvdbCreateBucket(email){
