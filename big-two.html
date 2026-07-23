@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Big Two</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --felt-dark:#0a3527;
+    --felt-mid:#0f5238;
+    --felt-light:#1a7350;
+    --rail-dark:#2a1810;
+    --rail-mid:#4a2e1c;
+    --rail-light:#6e4527;
+    --gold:#cda434;
+    --gold-bright:#f3dd8f;
+    --cream:#f7f1e3;
+    --ink:#221b13;
+    --red:#a4372c;
+    --panel-bg:rgba(8,18,14,0.62);
+    --panel-border:rgba(205,164,52,0.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    background:#050a08;
+    font-family:'Inter',sans-serif;
+    color:var(--cream);
+    overflow-x:hidden;
+  }
+  body{
+    display:flex;flex-direction:column;
+    min-height:100vh;
+  }
+  h1,.display{font-family:'Cinzel',serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* ===== Header ===== */
+  header{
+    text-align:center;
+    padding:14px 10px 8px;
+    flex-shrink:0;
+  }
+  header h1{
+    margin:0;
+    font-size:26px;
+    letter-spacing:4px;
+    font-weight:700;
+    color:var(--gold-bright);
+    text-shadow:0 2px 8px rgba(0,0,0,0.6);
+  }
+  header .sub{
+    font-size:11px;
+    letter-spacing:2px;
+    color:rgba(247,241,227,0.55);
+    text-transform:uppercase;
+    margin-top:2px;
+  }
+
+  /* ===== Main layout ===== */
+  .main-area{
+    flex:1;
+    display:flex;
+    gap:12px;
+    padding:0 14px 14px;
+    max-width:1180px;
+    margin:0 auto;
+    width:100%;
+    align-items:flex-start;
+  }
+
+  /* ===== Table ===== */
+  .table-col{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-width:0;
+  }
+  .rail{
+    position:relative;
+    width:100%;
+    max-width:820px;
+    aspect-ratio:16/10.5;
+    border-radius:220px/160px;
+    background:
+      linear-gradient(155deg,var(--rail-light),var(--rail-dark) 60%);
+    box-shadow:
+      0 18px 40px rgba(0,0,0,0.55),
+      inset 0 0 0 2px rgba(0,0,0,0.4);
+    padding:26px;
+  }
+  .rail::before{
+    content:'';
+    position:absolute;inset:0;
+    border-radius:inherit;
+    background:repeating-linear-gradient(115deg,rgba(0,0,0,0.08) 0 2px,transparent 2px 7px);
+    opacity:0.5;
+    pointer-events:none;
+  }
+  .stud{
+    position:absolute;width:10px;height:10px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,var(--gold-bright),var(--gold) 55%,#7a5a1a 100%);
+    box-shadow:0 1px 3px rgba(0,0,0,0.6);
+  }
+  .felt{
+    position:relative;
+    width:100%;height:100%;
+    border-radius:200px/145px;
+    background:
+      radial-gradient(ellipse at 50% 42%,var(--felt-light) 0%,var(--felt-mid) 55%,var(--felt-dark) 100%);
+    box-shadow:inset 0 0 60px rgba(0,0,0,0.55),inset 0 0 12px rgba(0,0,0,0.5);
+    overflow:hidden;
+  }
+  .felt::after{
+    content:'';
+    position:absolute;inset:0;
+    background:repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,0.025) 0 2px,transparent 2px 5px);
+    mix-blend-mode:overlay;
+  }
+
+  .seat{
+    position:absolute;
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+    z-index:3;
+  }
+  .seat.north{top:4%;left:50%;transform:translateX(-50%);}
+  .seat.west{left:2.5%;top:50%;transform:translateY(-50%);}
+  .seat.east{right:2.5%;top:50%;transform:translateY(-50%);}
+
+  .nameplate{
+    background:linear-gradient(180deg,#3a2a12,#1c1408);
+    border:1px solid var(--gold);
+    border-radius:8px;
+    padding:3px 10px;
+    font-size:12px;
+    letter-spacing:1px;
+    color:var(--gold-bright);
+    box-shadow:0 2px 5px rgba(0,0,0,0.5);
+    display:flex;align-items:center;gap:6px;
+    transition:box-shadow .25s, border-color .25s;
+    white-space:nowrap;
+  }
+  .nameplate .count{color:var(--cream);opacity:0.8;font-size:11px;}
+  .seat.active .nameplate{
+    border-color:var(--gold-bright);
+    box-shadow:0 0 10px 2px rgba(243,221,143,0.65),0 2px 5px rgba(0,0,0,0.5);
+    animation:pulseGlow 1.4s ease-in-out infinite;
+  }
+  @keyframes pulseGlow{
+    0%,100%{box-shadow:0 0 8px 1px rgba(243,221,143,0.5),0 2px 5px rgba(0,0,0,0.5);}
+    50%{box-shadow:0 0 16px 4px rgba(243,221,143,0.85),0 2px 5px rgba(0,0,0,0.5);}
+  }
+  .thinking{
+    font-size:10px;color:var(--gold-bright);opacity:0;letter-spacing:1px;
+    transition:opacity .2s;
+  }
+  .seat.active .thinking.show{opacity:1;}
+
+  .fan-back{display:flex;}
+  .fan-back.horizontal{flex-direction:row;}
+  .fan-back.vertical{flex-direction:column;}
+  .card-back{
+    width:30px;height:42px;border-radius:4px;
+    background:
+      repeating-linear-gradient(45deg,#5c1a2b 0 4px,#4a1422 4px 8px);
+    border:1.5px solid var(--gold);
+    box-shadow:0 2px 4px rgba(0,0,0,0.5);
+    position:relative;flex-shrink:0;
+  }
+  .card-back::after{
+    content:'♦';
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:12px;color:var(--gold-bright);opacity:0.85;
+  }
+  .fan-back.horizontal .card-back{margin-left:-20px;}
+  .fan-back.horizontal .card-back:first-child{margin-left:0;}
+  .fan-back.vertical .card-back{margin-top:-30px;width:38px;height:26px;}
+  .fan-back.vertical .card-back:first-child{margin-top:0;}
+  .fan-back.vertical .card-back::after{font-size:11px;}
+
+  /* ===== Center play area ===== */
+  .center-area{
+    position:absolute;
+    top:50%;left:50%;transform:translate(-50%,-50%);
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    z-index:2;
+    min-width:200px;
+  }
+  .center-label{
+    font-size:11px;letter-spacing:1.5px;color:rgba(247,241,227,0.6);
+    text-transform:uppercase;
+    min-height:14px;
+  }
+  .center-cards{
+    display:flex;gap:6px;justify-content:center;
+    min-height:64px;
+  }
+  .combo-name{
+    font-size:12px;color:var(--gold-bright);letter-spacing:1px;
+    min-height:14px;
+  }
+  .flash-msg{
+    position:absolute;bottom:6%;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,0.7);border:1px solid var(--gold);
+    padding:6px 14px;border-radius:20px;font-size:12px;
+    color:var(--gold-bright);opacity:0;transition:opacity .3s;z-index:5;
+    pointer-events:none;white-space:nowrap;
+  }
+  .flash-msg.show{opacity:1;}
+
+  /* ===== Cards (face up) ===== */
+  .card{
+    width:56px;height:80px;border-radius:6px;
+    background:linear-gradient(160deg,#fffdf7,var(--cream));
+    border:1px solid rgba(0,0,0,0.35);
+    box-shadow:0 3px 6px rgba(0,0,0,0.45),0 1px 0 rgba(255,255,255,0.5) inset;
+    position:relative;
+    display:flex;flex-direction:column;justify-content:space-between;
+    padding:4px 5px;
+    font-weight:700;
+    flex-shrink:0;
+    user-select:none;
+  }
+  .card.small{width:38px;height:56px;padding:2px 3px;border-radius:4px;font-size:10px;}
+  .card.red{color:var(--red);}
+  .card.black{color:var(--ink);}
+  .card .corner{font-size:12px;line-height:1;}
+  .card.small .corner{font-size:9px;}
+  .card .corner.bottom{align-self:flex-end;transform:rotate(180deg);}
+  .card .pip{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-size:22px;opacity:0.9;
+  }
+  .card.small .pip{font-size:15px;}
+
+  /* ===== Player hand ===== */
+  .hand-wrap{
+    margin-top:10px;
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    width:100%;
+  }
+  .player-info{
+    display:flex;align-items:center;gap:10px;
+  }
+  .hand{
+    display:flex;justify-content:center;
+    padding:14px 0 4px;
+    min-height:96px;
+  }
+  .hand .card{
+    cursor:pointer;
+    margin-left:-24px;
+    transition:transform .15s ease, box-shadow .15s ease, margin .15s ease;
+  }
+  .hand .card:first-child{margin-left:0;}
+  .hand .card:hover{transform:translateY(-8px);}
+  .hand .card.selected{
+    transform:translateY(-18px);
+    box-shadow:0 0 0 2px var(--gold-bright),0 6px 10px rgba(0,0,0,0.5);
+  }
+  .hand .card.just-dealt{animation:dealIn .35s ease both;}
+  @keyframes dealIn{
+    from{opacity:0;transform:translateY(30px) rotate(-4deg);}
+    to{opacity:1;transform:translateY(0) rotate(0);}
+  }
+
+  .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  button{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    letter-spacing:0.5px;
+    padding:9px 20px;
+    border-radius:8px;
+    border:1px solid var(--gold);
+    background:linear-gradient(180deg,#3a2a12,#1c1408);
+    color:var(--gold-bright);
+    cursor:pointer;
+    transition:filter .15s, transform .1s;
+  }
+  button:hover:not(:disabled){filter:brightness(1.25);}
+  button:active:not(:disabled){transform:translateY(1px);}
+  button:disabled{opacity:0.35;cursor:not-allowed;}
+  button.primary{background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:var(--ink);}
+  button.ghost{background:transparent;border-color:rgba(205,164,52,0.5);}
+
+  /* ===== Side panel ===== */
+  .side-col{
+    width:230px;flex-shrink:0;
+    display:flex;flex-direction:column;gap:10px;
+  }
+  .panel{
+    background:var(--panel-bg);
+    border:1px solid var(--panel-border);
+    border-radius:10px;
+    padding:10px 12px;
+  }
+  .panel h3{
+    margin:0 0 8px;font-size:11px;letter-spacing:1.5px;
+    text-transform:uppercase;color:var(--gold-bright);
+    display:flex;justify-content:space-between;align-items:center;cursor:pointer;
+  }
+  .log{
+    height:260px;overflow-y:auto;
+    font-size:12px;line-height:1.5;
+    color:rgba(247,241,227,0.85);
+    display:flex;flex-direction:column-reverse;
+  }
+  .log::-webkit-scrollbar{width:5px;}
+  .log::-webkit-scrollbar-thumb{background:var(--gold);border-radius:4px;}
+  .log-entry{padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+  .log-entry.you{color:var(--gold-bright);}
+  .rules-body{font-size:11.5px;line-height:1.6;color:rgba(247,241,227,0.85);}
+  .rules-body b{color:var(--gold-bright);}
+  .rules-body[hidden]{display:none;}
+  .rank-row{display:flex;justify-content:space-between;padding:2px 0;}
+
+  /* ===== Overlay ===== */
+  .overlay{
+    position:fixed;inset:0;background:rgba(3,8,6,0.82);
+    display:flex;align-items:center;justify-content:center;z-index:50;
+  }
+  .overlay[hidden]{display:none;}
+  .overlay-card{
+    background:linear-gradient(160deg,#12251c,#0a1712);
+    border:1px solid var(--gold);
+    border-radius:16px;
+    padding:32px 40px;
+    text-align:center;
+    box-shadow:0 0 40px rgba(243,221,143,0.25),0 20px 60px rgba(0,0,0,0.6);
+    max-width:90vw;
+  }
+  .overlay-card h2{
+    font-size:28px;color:var(--gold-bright);margin:0 0 6px;letter-spacing:2px;
+  }
+  .overlay-card p{color:rgba(247,241,227,0.75);font-size:13px;margin:0 0 16px;}
+  .standings{margin:0 0 20px;}
+  .standings .rank-row{font-size:13px;}
+  .standings .rank-row.win{color:var(--gold-bright);font-weight:700;}
+
+  @media (max-width:880px){
+    .main-area{flex-direction:column;align-items:stretch;padding:0 8px 10px;}
+    .side-col{width:100%;flex-direction:row;}
+    .panel{flex:1;}
+    .log{height:140px;}
+    .card{width:44px;height:64px;}
+    .hand .card{margin-left:-20px;}
+    .card .pip{font-size:16px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>BIG TWO</h1>
+  <div class="sub">Four Players &middot; Lowest to Highest, 3 to 2</div>
+</header>
+
+<div class="main-area">
+  <div class="table-col">
+    <div class="rail" id="rail">
+      <div class="felt" id="felt">
+        <div class="seat north" id="seat-2">
+          <div class="nameplate"><span class="name">North</span><span class="count mono"></span></div>
+          <div class="thinking">thinking…</div>
+          <div class="fan-back horizontal" id="backs-2"></div>
+        </div>
+        <div class="seat west" id="seat-1">
+          <div class="nameplate"><span class="name">West</span><span class="count mono"></span></div>
+          <div class="thinking">thinking…</div>
+          <div class="fan-back vertical" id="backs-1"></div>
+        </div>
+        <div class="seat east" id="seat-3">
+          <div class="nameplate"><span class="name">East</span><span class="count mono"></span></div>
+          <div class="thinking">thinking…</div>
+          <div class="fan-back vertical" id="backs-3"></div>
+        </div>
+        <div class="center-area">
+          <div class="center-label" id="center-label">Table is clear</div>
+          <div class="center-cards" id="center-cards"></div>
+          <div class="combo-name" id="combo-name"></div>
+        </div>
+        <div class="flash-msg" id="flash"></div>
+      </div>
+    </div>
+
+    <div class="hand-wrap">
+      <div class="player-info">
+        <div class="nameplate" id="seat-0"><span class="name">You</span><span class="count mono"></span></div>
+      </div>
+      <div class="hand" id="human-hand"></div>
+      <div class="controls">
+        <button class="primary" id="btn-play">Play Selected</button>
+        <button id="btn-pass">Pass</button>
+        <button class="ghost" id="btn-new">New Game</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="side-col">
+    <div class="panel">
+      <h3 onclick="toggleRules()">Rules <span id="rules-arrow">▾</span></h3>
+      <div class="rules-body" id="rules-body" hidden>
+        Whoever holds the <b>3♦</b> leads the first trick and must include it in that play.<br><br>
+        <b>Valid plays:</b> single, pair, triple, bomb (4 of a kind), or 5-card hand.<br>
+        Suit rank (low→high): ♦ ♣ ♥ ♠. Card rank: 3 is lowest, 2 is highest.<br><br>
+        A <b>Bomb</b> (4 cards, same rank — e.g. 4♦4♣4♥4♠) can only be beaten by a higher Bomb. It's separate from the 5-card Four of a Kind below.<br><br>
+        <b>5-card hand strength</b> (low→high):
+        <div class="rank-row"><span>Straight</span><span>1</span></div>
+        <div class="rank-row"><span>Flush</span><span>2</span></div>
+        <div class="rank-row"><span>Full House</span><span>3</span></div>
+        <div class="rank-row"><span>Four of a Kind</span><span>4</span></div>
+        <div class="rank-row"><span>Straight Flush</span><span>5</span></div>
+        <br>
+        Each turn you must play higher than the current combo, or pass. When everyone else passes, the last player to play leads a new trick — any combo shape. First to empty their hand wins.
+      </div>
+    </div>
+    <div class="panel" style="flex:1;">
+      <h3>Table Log</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="overlay-card">
+    <h2 id="overlay-title">Winner!</h2>
+    <p id="overlay-sub"></p>
+    <div class="standings" id="standings"></div>
+    <button class="primary" id="btn-again">New Game</button>
+  </div>
+</div>
+
+<script>
+/* ===================== Core logic ===================== */
+const RANKS = ['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
+const SUITS = ['D','C','H','S'];
+const SUIT_SYMBOL = { D:'♦', C:'♣', H:'♥', S:'♠' };
+const SUIT_COLOR = { D:'red', C:'black', H:'red', S:'black' };
+const COMBO_NAMES = { single:'Single', pair:'Pair', triple:'Triple', bomb:'Bomb (4 of a Kind)',
+  straight:'Straight', flush:'Flush', fullhouse:'Full House',
+  quad:'Four of a Kind', straightflush:'Straight Flush' };
+
+function val(c){ return c.r*4 + c.s; }
+function buildDeck(){ const d=[]; for(let r=0;r<13;r++) for(let s=0;s<4;s++) d.push({r,s}); return d; }
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function deal(deck){ const hands=[[],[],[],[]]; for(let i=0;i<deck.length;i++) hands[i%4].push(deck[i]); hands.forEach(h=>h.sort((a,b)=>val(a)-val(b))); return hands; }
+function combinations(arr,k){
+  const res=[]; const n=arr.length; if(k>n) return res;
+  const idx=Array.from({length:k},(_,i)=>i);
+  while(true){
+    res.push(idx.map(i=>arr[i]));
+    let i=k-1;
+    while(i>=0 && idx[i]===n-k+i) i--;
+    if(i<0) break;
+    idx[i]++;
+    for(let j=i+1;j<k;j++) idx[j]=idx[j-1]+1;
+  }
+  return res;
+}
+function classifyCombo(cards){
+  if(!cards || !cards.length) return null;
+  const cs=cards.slice().sort((a,b)=>val(a)-val(b));
+  const len=cs.length;
+  if(len===1) return {type:'single',length:1,category:0,strength:val(cs[0])};
+  if(len===2){
+    if(cs[0].r===cs[1].r) return {type:'pair',length:2,category:0,strength:Math.max(val(cs[0]),val(cs[1]))};
+    return null;
+  }
+  if(len===3){
+    if(cs[0].r===cs[1].r && cs[1].r===cs[2].r) return {type:'triple',length:3,category:0,strength:cs[0].r};
+    return null;
+  }
+  if(len===4){
+    if(cs.every(c=>c.r===cs[0].r)) return {type:'bomb',length:4,category:0,strength:cs[0].r};
+    return null;
+  }
+  if(len===5){
+    const rankCount={}; cs.forEach(c=>{ rankCount[c.r]=(rankCount[c.r]||0)+1; });
+    const distinct=Object.keys(rankCount).length;
+    const counts=Object.values(rankCount).sort((a,b)=>b-a);
+    const isFlush=cs.every(c=>c.s===cs[0].s);
+    let isStraight=false;
+    if(distinct===5){
+      const rs=cs.map(c=>c.r).sort((a,b)=>a-b);
+      if(!rs.includes(12)) isStraight=rs.every((r,i)=> i===0 || r===rs[i-1]+1);
+    }
+    if(counts[0]===4){
+      const qr=Number(Object.keys(rankCount).find(r=>rankCount[r]===4));
+      return {type:'quad',length:5,category:4,strength:qr};
+    }
+    if(counts[0]===3 && counts[1]===2){
+      const tr=Number(Object.keys(rankCount).find(r=>rankCount[r]===3));
+      return {type:'fullhouse',length:5,category:3,strength:tr};
+    }
+    if(isStraight && isFlush){ const top=Math.max(...cs.map(val)); return {type:'straightflush',length:5,category:5,strength:top}; }
+    if(isFlush){ const top=Math.max(...cs.map(val)); return {type:'flush',length:5,category:2,strength:top}; }
+    if(isStraight){ const topCard=cs.reduce((a,b)=> b.r>a.r? b:a); return {type:'straight',length:5,category:1,strength:val(topCard)}; }
+    return null;
+  }
+  return null;
+}
+function beats(nc,cur){
+  if(!cur) return true;
+  if(nc.length!==cur.length) return false;
+  if(nc.length===5){ if(nc.category!==cur.category) return nc.category>cur.category; return nc.strength>cur.strength; }
+  return nc.strength>cur.strength;
+}
+function cardLabel(c){ return RANKS[c.r]+SUIT_SYMBOL[SUITS[c.s]]; }
+function cardsLabel(cards){ return cards.slice().sort((a,b)=>val(a)-val(b)).map(cardLabel).join(' '); }
+
+/* ===================== Game state ===================== */
+const NAMES = ['You','West','North','East'];
+let state = null;
+let selectedKeys = new Set();
+let animLock = false;
+
+function newGame(){
+  const deck = shuffle(buildDeck());
+  const hands = deal(deck);
+  let starter = 0;
+  hands.forEach((h,i)=>{ if(h.some(c=>c.r===0 && c.s===0)) starter=i; });
+  state = {
+    players: hands.map((h,i)=>({ id:i, name:NAMES[i], hand:h, isBot:i!==0 })),
+    currentPlayerId: starter,
+    currentCombo: null,
+    lastPlayedBy: null,
+    passCount: 0,
+    firstMove: true,
+    finished: false,
+    winnerId: null,
+    log: []
+  };
+  selectedKeys = new Set();
+  log(`New game dealt. ${NAMES[starter]} holds 3♦ and leads.`, starter===0);
+  document.getElementById('overlay').hidden = true;
+  render(true);
+  if(state.currentPlayerId!==0) scheduleBotIfNeeded();
+}
+
+function log(msg, isYou){
+  state.log.push({msg, isYou:!!isYou});
+  if(state.log.length>80) state.log.shift();
+}
+
+function key(c){ return c.r+'_'+c.s; }
+
+/* ===================== Bot AI ===================== */
+function conserveCompare(a,b){
+  // secondary tiebreak within a fixed card-count: cheapest rank first, but for
+  // 5-card hands weakest category+strength first (keeps strong hands in reserve)
+  if(a.cards.length===5){
+    if(a.combo.category!==b.combo.category) return a.combo.category-b.combo.category;
+    return a.combo.strength-b.combo.strength;
+  }
+  return a.cards[0].r - b.cards[0].r;
+}
+
+function chooseBotMove(player, currentCombo, firstMove, minOpp){
+  const hand = player.hand;
+  let candidates = [];
+  hand.forEach(c => candidates.push({cards:[c], combo:classifyCombo([c])}));
+  const groups = {};
+  hand.forEach(c=>{ (groups[c.r]=groups[c.r]||[]).push(c); });
+  Object.values(groups).forEach(g=>{
+    if(g.length>=2) combinations(g,2).forEach(p=>candidates.push({cards:p,combo:classifyCombo(p)}));
+    if(g.length>=3) combinations(g,3).forEach(t=>candidates.push({cards:t,combo:classifyCombo(t)}));
+    if(g.length===4) candidates.push({cards:g, combo:classifyCombo(g)});
+  });
+  if(hand.length>=5){
+    combinations(hand,5).forEach(five=>{
+      const combo=classifyCombo(five);
+      if(combo) candidates.push({cards:five,combo});
+    });
+  }
+  candidates = candidates.filter(c=>c.combo);
+
+  if(firstMove){
+    candidates = candidates.filter(c=>c.cards.some(cc=>cc.r===0 && cc.s===0));
+    candidates.sort((a,b)=> a.cards.length-b.cards.length || conserveCompare(a,b));
+    return candidates[0] || null;
+  }
+
+  if(!currentCombo){
+    // ----- LEADING: shed loose cards, keep sets intact, block a near-winning opponent -----
+    const rankSize = {};
+    hand.forEach(c=>{ rankSize[c.r]=(rankSize[c.r]||0)+1; });
+
+    if(minOpp<=2){
+      // an opponent is close to winning: a multi-card lead they may not be able to match
+      // is much safer than a single they can always answer with their last card
+      const multi = candidates.filter(c=>c.cards.length>=2);
+      if(multi.length){
+        const guaranteed = multi.filter(c=>c.cards.length>minOpp); // they physically can't respond
+        const pool = guaranteed.length ? guaranteed : multi;
+        pool.sort((a,b)=> (b.cards.length-a.cards.length) || conserveCompare(a,b));
+        return pool[0];
+      }
+    }
+
+    const isolated = candidates.filter(c=>c.cards.length===1 && rankSize[c.cards[0].r]===1);
+    if(isolated.length){
+      isolated.sort((a,b)=>a.combo.strength-b.combo.strength);
+      return isolated[0];
+    }
+
+    // no free singles left: play the lowest existing set together rather than
+    // breaking it apart one card at a time
+    const sets = candidates.filter(c=>c.cards.length>=2 && c.cards.length<=4 && c.cards.every(cc=>cc.r===c.cards[0].r));
+    if(sets.length){
+      sets.sort((a,b)=> a.cards[0].r-b.cards[0].r || a.cards.length-b.cards.length);
+      return sets[0];
+    }
+
+    if(!candidates.length) return null;
+    candidates.sort((a,b)=> a.cards.length-b.cards.length || conserveCompare(a,b));
+    return candidates[0];
+  }
+
+  // ----- RESPONDING: play the cheapest combo that still wins the trick -----
+  const sameLen = candidates.filter(c=>c.cards.length===currentCombo.length);
+  const beating = sameLen.filter(c=>beats(c.combo,currentCombo));
+  if(!beating.length) return null;
+  beating.sort((a,b)=> a.combo.category-b.combo.category || a.combo.strength-b.combo.strength);
+  return beating[0];
+}
+
+function botAct(){
+  const pid = state.currentPlayerId;
+  const player = state.players[pid];
+  const minOpp = Math.min(...state.players.filter(p=>p.id!==pid).map(p=>p.hand.length));
+  const move = chooseBotMove(player, state.currentCombo, state.firstMove, minOpp);
+  if(move) applyPlay(pid, move.cards, move.combo);
+  else applyPass(pid);
+}
+
+function scheduleBotIfNeeded(){
+  if(state.finished) return;
+  if(state.currentPlayerId===0) return;
+  const seat = document.getElementById('seat-'+state.currentPlayerId);
+  const th = seat.querySelector('.thinking');
+  th.classList.add('show');
+  setTimeout(()=>{
+    th.classList.remove('show');
+    botAct();
+    render(false);
+    if(state.finished){ showOverlay(); return; }
+    scheduleBotIfNeeded();
+  }, 750 + Math.random()*500);
+}
+
+/* ===================== Actions ===================== */
+function removeCards(hand, cards){
+  const keys = new Set(cards.map(key));
+  return hand.filter(c=>!keys.has(key(c)));
+}
+
+function afterMove(wasPlay){
+  if(wasPlay){
+    state.passCount = 0;
+    state.currentPlayerId = (state.currentPlayerId+1)%4;
+  } else {
+    state.passCount++;
+    if(state.passCount>=3){
+      state.currentCombo = null;
+      state.passCount = 0;
+      state.currentPlayerId = state.lastPlayedBy;
+      log(`— Trick cleared. ${NAMES[state.currentPlayerId]} leads a new trick. —`);
+      flashMsg(`Trick cleared — ${NAMES[state.currentPlayerId]} leads`);
+    } else {
+      state.currentPlayerId = (state.currentPlayerId+1)%4;
+    }
+  }
+}
+
+function applyPlay(pid, cards, combo){
+  const player = state.players[pid];
+  player.hand = removeCards(player.hand, cards);
+  state.currentCombo = { ...combo, cards, playedBy: pid };
+  state.lastPlayedBy = pid;
+  state.firstMove = false;
+  log(`${NAMES[pid]} played ${COMBO_NAMES[combo.type]}: ${cardsLabel(cards)}`, pid===0);
+  if(player.hand.length===0){
+    state.finished = true;
+    state.winnerId = pid;
+    return;
+  }
+  afterMove(true);
+}
+
+function applyPass(pid){
+  log(`${NAMES[pid]} passed`, pid===0);
+  afterMove(false);
+}
+
+/* ===================== Human interaction ===================== */
+function humanCardClick(c){
+  if(state.finished || state.currentPlayerId!==0) return;
+  const k = key(c);
+  if(selectedKeys.has(k)) selectedKeys.delete(k); else selectedKeys.add(k);
+  render(false);
+}
+
+function getSelectedCards(){
+  const hand = state.players[0].hand;
+  return hand.filter(c=>selectedKeys.has(key(c)));
+}
+
+function humanPlay(){
+  if(state.finished || state.currentPlayerId!==0) return;
+  const selected = getSelectedCards();
+  if(!selected.length){ flashMsg('Select cards to play'); return; }
+  if(state.firstMove && !selected.some(c=>c.r===0 && c.s===0)){
+    flashMsg('You hold 3♦ — it must be part of your opening play'); return;
+  }
+  const combo = classifyCombo(selected);
+  if(!combo){ flashMsg('Not a valid combo'); return; }
+  if(state.currentCombo){
+    if(combo.length !== state.currentCombo.length || !beats(combo, state.currentCombo)){
+      flashMsg("That doesn't beat the table"); return;
+    }
+  }
+  selectedKeys = new Set();
+  applyPlay(0, selected, combo);
+  render(false);
+  if(state.finished){ showOverlay(); return; }
+  scheduleBotIfNeeded();
+}
+
+function humanPass(){
+  if(state.finished || state.currentPlayerId!==0) return;
+  if(!state.currentCombo){ flashMsg('You are leading — you must play'); return; }
+  selectedKeys = new Set();
+  applyPass(0);
+  render(false);
+  if(state.finished) return;
+  scheduleBotIfNeeded();
+}
+
+function flashMsg(msg){
+  const el = document.getElementById('flash');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.classList.remove('show'), 1800);
+}
+
+/* ===================== Rendering ===================== */
+function cardEl(c, opts){
+  opts = opts || {};
+  const div = document.createElement('div');
+  div.className = 'card ' + SUIT_COLOR[SUITS[c.s]] + (opts.small ? ' small' : '');
+  const rank = RANKS[c.r], sym = SUIT_SYMBOL[SUITS[c.s]];
+  div.innerHTML = `<div class="corner top">${rank}<br>${sym}</div><div class="pip">${sym}</div><div class="corner bottom">${rank}<br>${sym}</div>`;
+  return div;
+}
+
+function render(dealAnim){
+  // seats 1,2,3 backs + counts
+  [1,2,3].forEach(pid=>{
+    const seat = document.getElementById('seat-'+pid);
+    seat.classList.toggle('active', state.currentPlayerId===pid && !state.finished);
+    seat.querySelector('.count').textContent = state.players[pid].hand.length;
+    const backs = document.getElementById('backs-'+pid);
+    backs.innerHTML = '';
+    for(let i=0;i<state.players[pid].hand.length;i++){
+      const b = document.createElement('div');
+      b.className = 'card-back';
+      backs.appendChild(b);
+    }
+  });
+  // seat 0 nameplate
+  const seat0 = document.getElementById('seat-0');
+  seat0.classList.toggle('active', state.currentPlayerId===0 && !state.finished);
+  seat0.querySelector('.count').textContent = state.players[0].hand.length;
+
+  // human hand
+  const handEl = document.getElementById('human-hand');
+  handEl.innerHTML = '';
+  state.players[0].hand.forEach(c=>{
+    const el = cardEl(c);
+    if(selectedKeys.has(key(c))) el.classList.add('selected');
+    if(dealAnim) el.classList.add('just-dealt');
+    el.addEventListener('click', ()=>humanCardClick(c));
+    handEl.appendChild(el);
+  });
+
+  // center area
+  const label = document.getElementById('center-label');
+  const cc = document.getElementById('center-cards');
+  const cn = document.getElementById('combo-name');
+  cc.innerHTML = '';
+  if(state.currentCombo){
+    label.textContent = 'Played by ' + NAMES[state.currentCombo.playedBy];
+    cn.textContent = COMBO_NAMES[state.currentCombo.type];
+    state.currentCombo.cards.slice().sort((a,b)=>val(a)-val(b)).forEach(c=>{
+      cc.appendChild(cardEl(c, {small:true}));
+    });
+  } else {
+    label.textContent = state.finished ? '' : (NAMES[state.currentPlayerId] + ' leads — table is clear');
+    cn.textContent = '';
+  }
+
+  // buttons
+  document.getElementById('btn-play').disabled = state.finished || state.currentPlayerId!==0 || selectedKeys.size===0;
+  document.getElementById('btn-pass').disabled = state.finished || state.currentPlayerId!==0 || !state.currentCombo;
+
+  // log
+  const logEl = document.getElementById('log');
+  logEl.innerHTML = '';
+  state.log.slice().reverse().forEach(entry=>{
+    const d = document.createElement('div');
+    d.className = 'log-entry' + (entry.isYou ? ' you' : '');
+    d.textContent = entry.msg;
+    logEl.appendChild(d);
+  });
+}
+
+function showOverlay(){
+  render(false);
+  const overlay = document.getElementById('overlay');
+  const title = document.getElementById('overlay-title');
+  const sub = document.getElementById('overlay-sub');
+  const standings = document.getElementById('standings');
+  const winnerName = NAMES[state.winnerId];
+  title.textContent = state.winnerId===0 ? 'You win! 🎉' : winnerName + ' wins';
+  sub.textContent = state.winnerId===0 ? 'You emptied your hand first.' : winnerName + ' emptied their hand first.';
+  const order = state.players.slice().sort((a,b)=>{
+    if(a.id===state.winnerId) return -1;
+    if(b.id===state.winnerId) return 1;
+    return a.hand.length-b.hand.length;
+  });
+  standings.innerHTML = '';
+  order.forEach((p,i)=>{
+    const row = document.createElement('div');
+    row.className = 'rank-row' + (p.id===state.winnerId ? ' win' : '');
+    row.innerHTML = `<span>${i+1}. ${p.name}${p.id===0?' (You)':''}</span><span>${p.id===state.winnerId ? 'Winner' : p.hand.length+' cards left'}</span>`;
+    standings.appendChild(row);
+  });
+  overlay.hidden = false;
+}
+
+function toggleRules(){
+  const body = document.getElementById('rules-body');
+  const arrow = document.getElementById('rules-arrow');
+  body.hidden = !body.hidden;
+  arrow.textContent = body.hidden ? '▾' : '▴';
+}
+
+document.getElementById('btn-play').addEventListener('click', humanPlay);
+document.getElementById('btn-pass').addEventListener('click', humanPass);
+document.getElementById('btn-new').addEventListener('click', newGame);
+document.getElementById('btn-again').addEventListener('click', newGame);
+
+// corner studs
+(function addStuds(){
+  const rail = document.getElementById('rail');
+  const positions = [[3,3],[97,3],[3,97],[97,97]];
+  positions.forEach(([x,y])=>{
+    const s = document.createElement('div');
+    s.className='stud';
+    s.style.left = x+'%'; s.style.top = y+'%';
+    s.style.transform = 'translate(-50%,-50%)';
+    rail.appendChild(s);
+  });
+})();
+
+newGame();
+</script>
+</body>
+</html>
