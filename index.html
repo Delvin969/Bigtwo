@@ -401,7 +401,9 @@
     color:var(--gold-bright);
     background:rgba(0,0,0,0.3);border:1px solid var(--gold);
     border-radius:10px;padding:14px 10px;
+    word-break:break-all;
   }
+  .room-code-display.long-code{font-size:16px;letter-spacing:1px;}
   .seat-row{
     display:flex;justify-content:space-between;align-items:center;
     padding:8px 10px;border-radius:8px;
@@ -513,34 +515,12 @@
     </div>
     <div class="panel">
       <div class="field-row">
-        <input type="text" id="join-code-input" placeholder="Enter room code" maxlength="4" style="text-transform:uppercase;">
+        <input type="text" id="join-code-input" placeholder="Enter room code">
         <button id="btn-join-room">Join</button>
       </div>
     </div>
     <div class="status-msg" id="menu-status"></div>
     <div class="caveat">Multiplayer syncs through shared cloud storage — moves are last-write-wins, so it's built for playing with friends rather than tamper-proof play.</div>
-    <div class="platform-skip" id="btn-toggle-setup">Multiplayer backend not working? Set it up / regenerate it here</div>
-
-    <div class="panel" id="setup-backend-panel" hidden>
-      <h3 style="cursor:default;">Set Up Multiplayer</h3>
-      <div class="caveat" style="margin-bottom:8px;">
-        This copy of the game is running outside Claude, so it needs a free
-        <a href="https://kvdb.io" target="_blank" rel="noopener" style="color:var(--gold-bright);">kvdb.io</a>
-        storage bucket to let players find each other. This is a one-time setup for whoever
-        hosts this file — click below to create one, then paste the ID it gives you into
-        <span class="mono">KVDB_BUCKET_ID</span> near the top of the &lt;script&gt; tag in this
-        file and re-upload it. After that, every visitor can create and join rooms.
-        <br><br>kvdb.io requires an email to create a bucket. After you create one below,
-        check that inbox (and spam folder) for a verification link from kvdb.io and click
-        it — writes won't work until you do. This is a one-time step; after it's verified,
-        this bucket works for every visitor to your site indefinitely.
-      </div>
-      <div class="field-row">
-        <input type="text" id="setup-email-input" placeholder="Your email — required by kvdb.io">
-        <button id="btn-create-backend">Create Backend</button>
-      </div>
-      <div id="setup-backend-result" style="margin-top:8px;"></div>
-    </div>
   </div>
 </div>
 
@@ -548,6 +528,7 @@
 <div class="screen" id="screen-lobby">
   <div class="center-col">
     <div class="room-code-display" id="lobby-code">----</div>
+    <button class="ghost" id="btn-copy-invite" type="button">Copy Invite Link</button>
     <div class="panel">
       <h3 style="cursor:default;">Players</h3>
       <div id="lobby-seats"></div>
@@ -1114,62 +1095,23 @@ function showScreen(id){
 
 /* ===================== Cloud storage helpers ===================== */
 /*
-  MULTIPLAYER BACKEND SETUP (only needed if hosting this file outside Claude)
-  ----------------------------------------------------------------------------
-  Inside Claude, multiplayer uses Claude's built-in window.storage automatically —
-  nothing to configure.
+  Inside Claude, multiplayer uses Claude's built-in window.storage automatically.
 
-  On your own website, there's no window.storage, so this file talks to kvdb.io
-  instead, a free public key-value store (https://kvdb.io) that any browser can
-  read/write directly. You need a bucket ID once, for your whole site:
+  Outside Claude, there's no window.storage, so room state is stored on
+  jsonblob.com — a free public JSON storage API that needs no signup, no API
+  key, and no email verification. Each room is its own "blob"; the room code
+  players share IS that blob's ID. Nothing to configure — it just works the
+  moment this file is hosted anywhere.
 
-    1. Open the game on your site. If KVDB_BUCKET_ID below is empty, a
-       "Set Up Multiplayer" panel appears on the main menu.
-    2. Click "Create Backend" — enter a real email (kvdb.io requires one), which
-       creates a free kvdb.io bucket and shows you its ID.
-    3. Check that inbox for a verification email from kvdb.io and click the link —
-       writes will fail with "email not verified" until you do this.
-    4. Copy the bucket ID into KVDB_BUCKET_ID below, save this file, and re-upload it.
-    5. Done — every visitor to your site can now create/join rooms together.
-
-  This bucket has no password, so anyone who guesses a room code can read/write
-  that room (fine for casual play with friends, same as the in-Claude version).
+  Anonymous jsonblob.com requests are capped at 60/minute per visitor's IP,
+  so this stays well-suited to small friend groups rather than huge crowds.
 */
-const KVDB_BUCKET_ID = ''; // <-- paste your bucket ID here (create it below with a real email, then verify that email)
-
 let lastStorageError = null;
 
 function inClaudeEnv(){
   return typeof window!=='undefined' && window.storage && typeof window.storage.get==='function';
 }
-function hasCloudStorage(){
-  return inClaudeEnv() || !!KVDB_BUCKET_ID;
-}
-function usingPublicBackend(){
-  return !inClaudeEnv() && !!KVDB_BUCKET_ID;
-}
-
-async function kvdbGet(key){
-  const res = await fetch(`https://kvdb.io/${KVDB_BUCKET_ID}/${encodeURIComponent(key)}`);
-  if(res.status===404) return null;
-  if(!res.ok){ const body = await res.text().catch(()=> ''); throw new Error(`kvdb.io GET failed: HTTP ${res.status} ${body}`.trim()); }
-  return await res.text();
-}
-async function kvdbSet(key, value){
-  const res = await fetch(`https://kvdb.io/${KVDB_BUCKET_ID}/${encodeURIComponent(key)}`, {method:'POST', body:value});
-  if(!res.ok){ const body = await res.text().catch(()=> ''); throw new Error(`kvdb.io POST failed: HTTP ${res.status} ${body}`.trim()); }
-  return true;
-}
-async function kvdbCreateBucket(email){
-  const body = email ? ('email='+encodeURIComponent(email)) : '';
-  const res = await fetch('https://kvdb.io/', {
-    method:'POST',
-    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body
-  });
-  if(!res.ok) throw new Error('Bucket creation failed: HTTP '+res.status);
-  return (await res.text()).trim();
-}
+function hasCloudStorage(){ return true; } // window.storage in Claude, jsonblob.com everywhere else
 
 // Local, per-device values (name, client id) always use localStorage — no
 // network needed, and it works identically inside Claude or on any website.
@@ -1179,62 +1121,86 @@ function localGet(k){
 function localSet(k, v){
   try{ window.localStorage.setItem('bigtwo:'+k, v); return true; }catch(e){ return false; }
 }
-
-// Shared, cross-player values (room state) go to window.storage inside Claude,
-// or to the kvdb.io backend when hosted publicly.
 async function cloudGet(k, shared){
   if(!shared) return localGet(k);
-  try{
-    if(inClaudeEnv()){ const r = await window.storage.get(k, true); return r ? r.value : null; }
-    if(KVDB_BUCKET_ID) return await kvdbGet(k);
-    lastStorageError = 'No multiplayer backend configured — set KVDB_BUCKET_ID or open inside Claude.';
-    return null;
-  }catch(e){ lastStorageError = (e && e.message) ? e.message : String(e); return null; }
+  if(!inClaudeEnv()) return null; // shared non-room values aren't used outside Claude
+  try{ const r = await window.storage.get(k, true); return r ? r.value : null; }
+  catch(e){ lastStorageError = (e && e.message) ? e.message : String(e); return null; }
 }
 async function cloudSet(k, v, shared){
   if(!shared) return localSet(k, v);
-  try{
-    if(inClaudeEnv()){ const r = await window.storage.set(k, v, true); return !!r; }
-    if(KVDB_BUCKET_ID){ return await kvdbSet(k, v); }
-    lastStorageError = 'No multiplayer backend configured — set KVDB_BUCKET_ID or open inside Claude.';
-    return false;
-  }catch(e){ lastStorageError = (e && e.message) ? e.message : String(e); return false; }
-}
-async function testCloudStorage(){
-  lastStorageError = null;
-  if(!hasCloudStorage()) return {ok:false, reason:'No multiplayer backend available (not inside Claude, and no KVDB_BUCKET_ID configured).'};
-  const probeKey = '__probe_'+Date.now();
-  const setOk = await cloudSet(probeKey, 'ok', true);
-  if(!setOk) return {ok:false, reason: lastStorageError || 'write failed'};
-  const val = await cloudGet(probeKey, true);
-  if(val!=='ok') return {ok:false, reason: lastStorageError || 'read-back did not match'};
-  return {ok:true};
+  if(!inClaudeEnv()) return false;
+  try{ const r = await window.storage.set(k, v, true); return !!r; }
+  catch(e){ lastStorageError = (e && e.message) ? e.message : String(e); return false; }
 }
 async function ensureClientId(){
-  let id = await cloudGet('clientId', false);
+  let id = localGet('clientId');
   if(!id){
     id = 'c'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-    await cloudSet('clientId', id, false);
+    localSet('clientId', id);
   }
   return id;
 }
 async function loadProfileName(){
-  const v = await cloudGet('profile-name', false);
+  const v = localGet('profile-name');
   return v || ('Player'+Math.floor(100+Math.random()*900));
 }
-async function saveProfileNameToStorage(name){ await cloudSet('profile-name', name, false); }
+async function saveProfileNameToStorage(name){ localSet('profile-name', name); }
+
 function genRoomCode(){
+  // Only used inside Claude, where window.storage is a real key-value store.
   const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let s=''; for(let i=0;i<4;i++) s+=chars[Math.floor(Math.random()*chars.length)];
   return s;
 }
+
+// Create a brand-new room. Returns the room code (and mutates roomObj.code
+// to match) or null on failure — check lastStorageError for why.
+async function createRoom(roomObj){
+  lastStorageError = null;
+  if(inClaudeEnv()){
+    const code = genRoomCode();
+    roomObj.code = code;
+    const ok = await cloudSet('room:'+code, JSON.stringify(roomObj), true);
+    return ok ? code : null;
+  }
+  try{
+    const res = await fetch('https://jsonblob.com/api/jsonBlob', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(roomObj)
+    });
+    if(!res.ok){ lastStorageError = 'jsonblob.com create failed: HTTP '+res.status; return null; }
+    const loc = res.headers.get('Location') || res.headers.get('location');
+    if(!loc){ lastStorageError = 'jsonblob.com did not return a blob location'; return null; }
+    const code = loc.split('/').pop();
+    roomObj.code = code;
+    const ok2 = await setRoom(code, roomObj);
+    return ok2 ? code : null;
+  }catch(e){ lastStorageError = (e && e.message) ? e.message : String(e); return null; }
+}
 async function getRoom(code){
-  const raw = await cloudGet('room:'+code, true);
-  if(!raw) return null;
-  try{ return JSON.parse(raw); }catch(e){ return null; }
+  lastStorageError = null;
+  if(inClaudeEnv()){
+    const raw = await cloudGet('room:'+code, true);
+    if(!raw) return null;
+    try{ return JSON.parse(raw); }catch(e){ return null; }
+  }
+  try{
+    const res = await fetch(`https://jsonblob.com/api/jsonBlob/${encodeURIComponent(code)}`);
+    if(res.status===404) return null;
+    if(!res.ok){ lastStorageError = 'jsonblob.com read failed: HTTP '+res.status; return null; }
+    return await res.json();
+  }catch(e){ lastStorageError = (e && e.message) ? e.message : String(e); return null; }
 }
 async function setRoom(code, obj){
-  return await cloudSet('room:'+code, JSON.stringify(obj), true);
+  lastStorageError = null;
+  if(inClaudeEnv()) return await cloudSet('room:'+code, JSON.stringify(obj), true);
+  try{
+    const res = await fetch(`https://jsonblob.com/api/jsonBlob/${encodeURIComponent(code)}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(obj)
+    });
+    if(!res.ok){ lastStorageError = 'jsonblob.com write failed: HTTP '+res.status; return false; }
+    return true;
+  }catch(e){ lastStorageError = (e && e.message) ? e.message : String(e); return false; }
 }
 async function pushGameUpdate(){
   if(mode!=='online' || !roomCode) return;
@@ -1276,7 +1242,9 @@ function renderLobby(room){
 
 function enterLobby(room){
   showScreen('screen-lobby');
-  document.getElementById('lobby-code').textContent = room.code;
+  const codeEl = document.getElementById('lobby-code');
+  codeEl.textContent = room.code;
+  codeEl.classList.toggle('long-code', room.code.length>8);
   renderLobby(room);
   startLobbyPolling();
 }
@@ -1289,7 +1257,7 @@ function startLobbyPolling(){
     if(!room) return;
     if(room.status==='playing'){ enterGameScreen(room); return; }
     renderLobby(room);
-  }, 1500);
+  }, 2000);
 }
 function stopLobbyPolling(){ if(lobbyPollTimer){ clearInterval(lobbyPollTimer); lobbyPollTimer=null; } }
 
@@ -1327,7 +1295,7 @@ function startGamePolling(){
       if(state.finished) showOverlay();
     }
     maybeRunHostBotLoop();
-  }, 1400);
+  }, 1800);
 }
 function stopGamePolling(){ if(gamePollTimer){ clearInterval(gamePollTimer); gamePollTimer=null; } }
 
@@ -1401,28 +1369,26 @@ document.getElementById('btn-save-name').addEventListener('click', async ()=>{
 document.getElementById('btn-play-bots').addEventListener('click', ()=>{ newGame(); });
 
 document.getElementById('btn-create-room').addEventListener('click', async ()=>{
-  if(!hasCloudStorage()){ setMenuStatus('Multiplayer backend not set up yet — see "Set Up Multiplayer" below.', true); return; }
   setMenuStatus('Creating room…');
-  const code = genRoomCode();
   const room = {
-    code, hostClientId: myClientId, seq: 1, status: 'lobby',
+    hostClientId: myClientId, seq: 1, status: 'lobby',
     seats: [ {clientId:myClientId, name:myProfileName}, null, null, null ],
     game: null
   };
-  const ok = await setRoom(code, room);
-  if(!ok){ setMenuStatus('Could not create room: '+(lastStorageError||'unknown error'), true); return; }
+  const code = await createRoom(room);
+  if(!code){ setMenuStatus('Could not create room: '+(lastStorageError||'unknown error'), true); return; }
   mode='online'; isHost=true; mySeatIndex=0; roomCode=code;
   setMenuStatus('');
   enterLobby(room);
 });
 
 document.getElementById('btn-join-room').addEventListener('click', async ()=>{
-  if(!hasCloudStorage()){ setMenuStatus('Multiplayer backend not set up yet — see "Set Up Multiplayer" below.', true); return; }
-  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
-  if(code.length!==4){ setMenuStatus('Enter the 4-character room code', true); return; }
+  let code = document.getElementById('join-code-input').value.trim();
+  if(inClaudeEnv()) code = code.toUpperCase();
+  if(!code){ setMenuStatus('Enter a room code', true); return; }
   setMenuStatus('Joining…');
   const room = await getRoom(code);
-  if(!room){ setMenuStatus('Room not found', true); return; }
+  if(!room){ setMenuStatus('Room not found: '+(lastStorageError||'check the code'), true); return; }
   if(room.status!=='lobby'){ setMenuStatus('That game has already started', true); return; }
   let idx = room.seats.findIndex(s=>s && s.clientId===myClientId);
   if(idx===-1){
@@ -1504,35 +1470,25 @@ document.getElementById('btn-platform-pc').addEventListener('click', ()=> choose
 document.getElementById('btn-platform-mobile').addEventListener('click', ()=> choosePlatform('mobile'));
 document.getElementById('btn-platform-skip').addEventListener('click', ()=> showScreen('screen-menu'));
 
-document.getElementById('btn-toggle-setup').addEventListener('click', ()=>{
-  const panel = document.getElementById('setup-backend-panel');
-  panel.hidden = !panel.hidden;
-});
-
-document.getElementById('btn-create-backend').addEventListener('click', async ()=>{
-  const email = document.getElementById('setup-email-input').value.trim();
-  const resultEl = document.getElementById('setup-backend-result');
-  if(!email){ resultEl.innerHTML = '<span class="status-msg error">kvdb.io requires an email to create a bucket.</span>'; return; }
-  resultEl.innerHTML = '<span class="status-msg">Creating…</span>';
+document.getElementById('btn-copy-invite').addEventListener('click', async ()=>{
+  const url = location.origin + location.pathname + '?room=' + encodeURIComponent(roomCode);
   try{
-    const bucketId = await kvdbCreateBucket(email);
-    resultEl.innerHTML = `
-      <div class="status-msg">Bucket created! Paste this into <span class="mono">KVDB_BUCKET_ID</span> near the top of the script, save, and re-upload:</div>
-      <div class="room-code-display" style="font-size:16px;letter-spacing:2px;padding:10px;margin-top:6px;word-break:break-all;">${escapeHtml(bucketId)}</div>
-      <div class="status-msg error" style="margin-top:6px;">Now check ${escapeHtml(email)} for a verification email from kvdb.io and click the link — room creation will fail with "email not verified" until you do.</div>
-    `;
+    await navigator.clipboard.writeText(url);
+    setLobbyStatus('Invite link copied!');
   }catch(e){
-    resultEl.innerHTML = `<span class="status-msg error">Could not create a backend: ${escapeHtml((e&&e.message)?e.message:String(e))}</span>`;
+    setLobbyStatus(url); // clipboard blocked — show the link so it can be copied by hand
   }
 });
+function setLobbyStatus(msg){ const el = document.getElementById('lobby-status'); if(el) el.textContent = msg; }
 
 async function initApp(){
   myClientId = await ensureClientId();
   myProfileName = await loadProfileName();
   document.getElementById('profile-name-input').value = myProfileName;
-  if(!hasCloudStorage()){
-    setMenuStatus('Multiplayer backend not set up yet — you can still play vs bots.', true);
-    document.getElementById('setup-backend-panel').hidden = false;
+  const urlRoom = new URLSearchParams(location.search).get('room');
+  if(urlRoom){
+    document.getElementById('join-code-input').value = urlRoom;
+    setMenuStatus('Room code filled in from your invite link — tap Join.');
   }
   showScreen('screen-platform');
 }
