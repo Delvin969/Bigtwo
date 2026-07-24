@@ -717,6 +717,7 @@ let isHost = false;
 let myClientId = null;
 let myProfileName = 'Player';
 let lastKnownSeq = -1;
+let pendingSync = false; // true when a local move hasn't been confirmed synced yet
 let botBusy = false;
 let lobbyPollTimer = null;
 let gamePollTimer = null;
@@ -1204,12 +1205,18 @@ async function setRoom(code, obj){
 }
 async function pushGameUpdate(){
   if(mode!=='online' || !roomCode) return;
-  const room = await getRoom(roomCode);
-  if(!room) return;
-  room.game = state;
-  room.seq = (room.seq||0)+1;
-  const ok = await setRoom(roomCode, room);
-  if(ok) lastKnownSeq = room.seq;
+  pendingSync = true;
+  for(let attempt=0; attempt<3; attempt++){
+    if(attempt>0) await new Promise(r=>setTimeout(r, 500*attempt));
+    const room = await getRoom(roomCode);
+    if(!room) continue;
+    room.game = state;
+    room.seq = (room.seq||0)+1;
+    const ok = await setRoom(roomCode, room);
+    if(ok){ lastKnownSeq = room.seq; pendingSync = false; return; }
+  }
+  // All retries failed — the poll loop will keep trying; let the player know now.
+  flashMsg('⚠ Move not synced yet — check your connection, retrying…');
 }
 
 /* ===================== Lobby ===================== */
@@ -1287,6 +1294,7 @@ function startGamePolling(){
   stopGamePolling();
   gamePollTimer = setInterval(async ()=>{
     if(!roomCode) return;
+    if(pendingSync){ pushGameUpdate(); return; } // keep retrying our own unsynced move first
     const room = await getRoom(roomCode);
     if(!room) return;
     if(room.seq!==lastKnownSeq){
