@@ -351,15 +351,29 @@
     .hand .card{margin-left:-20px;}
     .card .pip{font-size:16px;}
   }
+  @media (max-width:480px){
+    header{padding:8px 8px 4px;}
+    header h1{font-size:19px;letter-spacing:2px;}
+    header .sub{font-size:9px;letter-spacing:1px;}
+    .main-area{padding:0 6px 8px;gap:8px;}
+    .side-col{flex-direction:column;}
+    .log{height:110px;font-size:11px;}
+    .card{width:36px;height:52px;}
+    .hand .card{margin-left:-17px;}
+    .card .pip{font-size:13px;}
+  }
 
   /* ===== Forced layout modes (from platform choice screen) ===== */
-  html[data-platform="mobile"] .main-area{flex-direction:column !important;align-items:stretch !important;padding:0 8px 10px !important;}
-  html[data-platform="mobile"] .side-col{width:100% !important;flex-direction:row !important;}
+  html[data-platform="mobile"] header{padding:8px 8px 4px !important;}
+  html[data-platform="mobile"] header h1{font-size:19px !important;letter-spacing:2px !important;}
+  html[data-platform="mobile"] header .sub{font-size:9px !important;letter-spacing:1px !important;}
+  html[data-platform="mobile"] .main-area{flex-direction:column !important;align-items:stretch !important;padding:0 6px 8px !important;gap:8px !important;}
+  html[data-platform="mobile"] .side-col{width:100% !important;flex-direction:column !important;}
   html[data-platform="mobile"] .panel{flex:1 !important;}
-  html[data-platform="mobile"] .log{height:140px !important;}
-  html[data-platform="mobile"] .card{width:44px !important;height:64px !important;}
-  html[data-platform="mobile"] .hand .card{margin-left:-20px !important;}
-  html[data-platform="mobile"] .card .pip{font-size:16px !important;}
+  html[data-platform="mobile"] .log{height:110px !important;font-size:11px !important;}
+  html[data-platform="mobile"] .card{width:36px !important;height:52px !important;}
+  html[data-platform="mobile"] .hand .card{margin-left:-17px !important;}
+  html[data-platform="mobile"] .card .pip{font-size:13px !important;}
 
   html[data-platform="pc"] .main-area{flex-direction:row !important;align-items:flex-start !important;padding:0 14px 14px !important;}
   html[data-platform="pc"] .side-col{width:230px !important;flex-direction:column !important;}
@@ -1318,24 +1332,27 @@ async function maybeRunHostBotLoop(){
   const th = seatDom ? seatDom.querySelector('.thinking') : null;
   if(th) th.classList.add('show');
   setTimeout(async ()=>{
-    const room = await getRoom(roomCode);
-    if(!room || room.seq!==lastKnownSeq || !room.game || room.game.finished ||
-       room.game.currentPlayerId!==pid || !room.game.players[pid].isBot){
+    try{
+      const room = await getRoom(roomCode);
+      if(!room || room.seq!==lastKnownSeq || !room.game || room.game.finished ||
+         room.game.currentPlayerId!==pid || !room.game.players[pid].isBot){
+        return;
+      }
+      state = room.game;
+      botAct();
+      room.game = state;
+      room.seq = (room.seq||0)+1;
+      const ok = await setRoom(roomCode, room);
+      if(ok) lastKnownSeq = room.seq;
+      render(false);
+      if(state.finished) showOverlay();
+    }catch(e){
+      // Swallow — a stuck bot loop is worse than a skipped turn; the next poll retries.
+    }finally{
       if(th) th.classList.remove('show');
       botBusy = false;
-      return;
+      maybeRunHostBotLoop();
     }
-    state = room.game;
-    botAct();
-    room.game = state;
-    room.seq = (room.seq||0)+1;
-    const ok = await setRoom(roomCode, room);
-    if(ok) lastKnownSeq = room.seq;
-    if(th) th.classList.remove('show');
-    render(false);
-    if(state.finished) showOverlay();
-    botBusy = false;
-    maybeRunHostBotLoop();
   }, 750 + Math.random()*500);
 }
 
