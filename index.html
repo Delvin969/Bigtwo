@@ -177,7 +177,7 @@
   }
   .fan-back.horizontal .card-back{margin-left:-20px;}
   .fan-back.horizontal .card-back:first-child{margin-left:0;}
-  .fan-back.vertical .card-back{margin-top:-30px;width:38px;height:26px;}
+  .fan-back.vertical .card-back{margin-top:-16px;width:34px;height:24px;}
   .fan-back.vertical .card-back:first-child{margin-top:0;}
   .fan-back.vertical .card-back::after{font-size:11px;}
 
@@ -287,7 +287,7 @@
   button.primary{background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:var(--ink);}
   button.ghost{background:transparent;border-color:rgba(205,164,52,0.5);}
 
-  /* ===== Side panel ===== */
+  /* ===== Side panel (legacy, kept for the forced-platform overrides below; unused in game markup now) ===== */
   .side-col{
     width:230px;flex-shrink:0;
     display:flex;flex-direction:column;gap:10px;
@@ -313,6 +313,41 @@
   .log::-webkit-scrollbar-thumb{background:var(--gold);border-radius:4px;}
   .log-entry{padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
   .log-entry.you{color:var(--gold-bright);}
+
+  /* ===== Compact corner toggles (replaces the always-visible side panel) ===== */
+  .corner-fabs{
+    position:fixed;top:10px;right:10px;z-index:60;
+    display:flex;flex-direction:column;gap:8px;
+  }
+  .corner-fab{
+    width:38px;height:38px;padding:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:17px;line-height:1;
+    background:var(--panel-bg);border:1px solid var(--panel-border);
+    border-radius:9px;color:var(--gold-bright);cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,0.4);
+    transition:border-color .15s;
+  }
+  .corner-fab:hover{border-color:var(--gold);}
+  .corner-fab.active{border-color:var(--gold-bright);box-shadow:0 0 8px rgba(243,221,143,0.4);}
+  .corner-popover{
+    position:fixed;top:54px;right:10px;z-index:59;
+    width:min(260px, calc(100vw - 20px));max-height:min(420px, 60vh);
+    overflow-y:auto;
+    background:var(--panel-bg);border:1px solid var(--gold);border-radius:10px;
+    padding:10px 12px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.5);
+    font-size:12px;line-height:1.5;color:rgba(247,241,227,0.9);
+    display:none;
+  }
+  .corner-popover.open{display:block;}
+  .corner-popover::-webkit-scrollbar{width:5px;}
+  .corner-popover::-webkit-scrollbar-thumb{background:var(--gold);border-radius:4px;}
+  .corner-popover .log{height:auto;max-height:none;}
+  @media (max-width:480px){
+    .corner-fab{width:32px;height:32px;font-size:14px;}
+    .corner-popover{top:48px;font-size:11px;}
+  }
   .rules-body{font-size:11.5px;line-height:1.6;color:rgba(247,241,227,0.85);}
   .rules-body b{color:var(--gold-bright);}
   .rules-body[hidden]{display:none;}
@@ -560,6 +595,30 @@
     <button class="ghost" id="btn-leave-table">Leave Table</button>
   </div>
 
+<div class="corner-fabs">
+  <button class="corner-fab" id="fab-rules" type="button" title="Rules">📜</button>
+  <button class="corner-fab" id="fab-log" type="button" title="Table Log">📋</button>
+</div>
+<div class="corner-popover" id="popover-rules">
+  <div class="rules-body" id="rules-body">
+    Whoever holds the <b>3♦</b> leads the first trick and must include it in that play.<br><br>
+    <b>Valid plays:</b> single, pair, triple, bomb (4 of a kind), or 5-card hand.<br>
+    Suit rank (low→high): ♦ ♣ ♥ ♠. Card rank: 3 is lowest, 2 is highest.<br><br>
+    A <b>Bomb</b> (4 cards, same rank — e.g. 4♦4♣4♥4♠) can only be beaten by a higher Bomb. It's separate from the 5-card Four of a Kind below.<br><br>
+    <b>5-card hand strength</b> (low→high):
+    <div class="rank-row"><span>Straight</span><span>1</span></div>
+    <div class="rank-row"><span>Flush</span><span>2</span></div>
+    <div class="rank-row"><span>Full House</span><span>3</span></div>
+    <div class="rank-row"><span>Four of a Kind</span><span>4</span></div>
+    <div class="rank-row"><span>Straight Flush</span><span>5</span></div>
+    <br>
+    Each turn you must play higher than the current combo, or pass. When everyone else passes, the last player to play leads a new trick — any combo shape. First to empty their hand wins.
+  </div>
+</div>
+<div class="corner-popover" id="popover-log">
+  <div class="log" id="log"></div>
+</div>
+
 <div class="main-area">
   <div class="table-col">
     <div class="rail" id="rail">
@@ -598,30 +657,6 @@
         <button id="btn-pass">Pass</button>
         <button class="ghost" id="btn-new">New Game</button>
       </div>
-    </div>
-  </div>
-
-  <div class="side-col">
-    <div class="panel">
-      <h3 onclick="toggleRules()">Rules <span id="rules-arrow">▾</span></h3>
-      <div class="rules-body" id="rules-body" hidden>
-        Whoever holds the <b>3♦</b> leads the first trick and must include it in that play.<br><br>
-        <b>Valid plays:</b> single, pair, triple, bomb (4 of a kind), or 5-card hand.<br>
-        Suit rank (low→high): ♦ ♣ ♥ ♠. Card rank: 3 is lowest, 2 is highest.<br><br>
-        A <b>Bomb</b> (4 cards, same rank — e.g. 4♦4♣4♥4♠) can only be beaten by a higher Bomb. It's separate from the 5-card Four of a Kind below.<br><br>
-        <b>5-card hand strength</b> (low→high):
-        <div class="rank-row"><span>Straight</span><span>1</span></div>
-        <div class="rank-row"><span>Flush</span><span>2</span></div>
-        <div class="rank-row"><span>Full House</span><span>3</span></div>
-        <div class="rank-row"><span>Four of a Kind</span><span>4</span></div>
-        <div class="rank-row"><span>Straight Flush</span><span>5</span></div>
-        <br>
-        Each turn you must play higher than the current combo, or pass. When everyone else passes, the last player to play leads a new trick — any combo shape. First to empty their hand wins.
-      </div>
-    </div>
-    <div class="panel" style="flex:1;">
-      <h3>Table Log</h3>
-      <div class="log" id="log"></div>
     </div>
   </div>
 </div>
@@ -1089,12 +1124,23 @@ function showOverlay(){
   overlay.hidden = false;
 }
 
-function toggleRules(){
-  const body = document.getElementById('rules-body');
-  const arrow = document.getElementById('rules-arrow');
-  body.hidden = !body.hidden;
-  arrow.textContent = body.hidden ? '▾' : '▴';
+function toggleCornerPopover(fabId, popoverId, otherFabId, otherPopoverId){
+  const fab = document.getElementById(fabId);
+  const pop = document.getElementById(popoverId);
+  const otherFab = document.getElementById(otherFabId);
+  const otherPop = document.getElementById(otherPopoverId);
+  const opening = !pop.classList.contains('open');
+  otherPop.classList.remove('open');
+  otherFab.classList.remove('active');
+  pop.classList.toggle('open', opening);
+  fab.classList.toggle('active', opening);
 }
+document.getElementById('fab-rules').addEventListener('click', ()=>{
+  toggleCornerPopover('fab-rules','popover-rules','fab-log','popover-log');
+});
+document.getElementById('fab-log').addEventListener('click', ()=>{
+  toggleCornerPopover('fab-log','popover-log','fab-rules','popover-rules');
+});
 
 function requestNewRound(){
   if(mode==='local'){ newGame(); return; }
@@ -1353,7 +1399,7 @@ async function maybeRunHostBotLoop(){
       botBusy = false;
       maybeRunHostBotLoop();
     }
-  }, 750 + Math.random()*500);
+  }, 300 + Math.random()*250);
 }
 
 async function hostStartNewRound(){
