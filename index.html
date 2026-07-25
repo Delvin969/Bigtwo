@@ -387,28 +387,47 @@
     .card .pip{font-size:16px;}
   }
   @media (max-width:480px){
-    header{padding:8px 8px 4px;}
-    header h1{font-size:19px;letter-spacing:2px;}
-    header .sub{font-size:9px;letter-spacing:1px;}
-    .main-area{padding:0 6px 8px;gap:8px;}
+    header{padding:6px 8px 3px;}
+    header h1{font-size:17px;letter-spacing:2px;}
+    header .sub{font-size:8px;letter-spacing:0.5px;}
+    .online-bar{font-size:10px;padding:0 0 4px;gap:6px;}
+    .online-bar .code{letter-spacing:0.5px;}
+    .main-area{padding:0 6px 6px;gap:4px;}
     .side-col{flex-direction:column;}
     .log{height:110px;font-size:11px;}
     .card{width:36px;height:52px;}
     .hand .card{margin-left:-17px;}
     .card .pip{font-size:13px;}
+    .rail{padding:12px;border-radius:120px/90px;}
+    .hand-wrap{margin-top:4px;gap:4px;}
+    .hand{min-height:64px;padding:6px 0 2px;}
+    .nameplate{padding:2px 7px;font-size:10px;}
+    .nameplate .count{font-size:9px;}
+    button{padding:6px 12px;font-size:11px;}
+    .controls{gap:6px;}
+    .seat.north{top:2%;}
+    .seat.west{left:1.5%;}
+    .seat.east{right:1.5%;}
   }
 
   /* ===== Forced layout modes (from platform choice screen) ===== */
-  html[data-platform="mobile"] header{padding:8px 8px 4px !important;}
-  html[data-platform="mobile"] header h1{font-size:19px !important;letter-spacing:2px !important;}
-  html[data-platform="mobile"] header .sub{font-size:9px !important;letter-spacing:1px !important;}
-  html[data-platform="mobile"] .main-area{flex-direction:column !important;align-items:stretch !important;padding:0 6px 8px !important;gap:8px !important;}
+  html[data-platform="mobile"] header{padding:6px 8px 3px !important;}
+  html[data-platform="mobile"] header h1{font-size:17px !important;letter-spacing:2px !important;}
+  html[data-platform="mobile"] header .sub{font-size:8px !important;letter-spacing:0.5px !important;}
+  html[data-platform="mobile"] .online-bar{font-size:10px !important;padding:0 0 4px !important;gap:6px !important;}
+  html[data-platform="mobile"] .main-area{flex-direction:column !important;align-items:stretch !important;padding:0 6px 6px !important;gap:4px !important;}
   html[data-platform="mobile"] .side-col{width:100% !important;flex-direction:column !important;}
   html[data-platform="mobile"] .panel{flex:1 !important;}
   html[data-platform="mobile"] .log{height:110px !important;font-size:11px !important;}
   html[data-platform="mobile"] .card{width:36px !important;height:52px !important;}
   html[data-platform="mobile"] .hand .card{margin-left:-17px !important;}
   html[data-platform="mobile"] .card .pip{font-size:13px !important;}
+  html[data-platform="mobile"] .rail{padding:12px !important;border-radius:120px/90px !important;}
+  html[data-platform="mobile"] .hand-wrap{margin-top:4px !important;gap:4px !important;}
+  html[data-platform="mobile"] .hand{min-height:64px !important;padding:6px 0 2px !important;}
+  html[data-platform="mobile"] .nameplate{padding:2px 7px !important;font-size:10px !important;}
+  html[data-platform="mobile"] button{padding:6px 12px !important;font-size:11px !important;}
+  html[data-platform="mobile"] .controls{gap:6px !important;}
 
   html[data-platform="pc"] .main-area{flex-direction:row !important;align-items:flex-start !important;padding:0 14px 14px !important;}
   html[data-platform="pc"] .side-col{width:230px !important;flex-direction:column !important;}
@@ -767,6 +786,8 @@ let myClientId = null;
 let myProfileName = 'Player';
 let lastKnownSeq = -1;
 let pendingSync = false; // true when a local move hasn't been confirmed synced yet
+let botStallSignature = null;
+let botStallCount = 0;
 let botBusy = false;
 let lobbyPollTimer = null;
 let gamePollTimer = null;
@@ -906,6 +927,19 @@ function botAct(){
   const move = chooseBotMove(player, state.currentCombo, state.firstMove, minOpp);
   if(move) applyPlay(pid, move.cards, move.combo);
   else applyPass(pid);
+}
+
+// Guaranteed-legal fallback used only after the normal bot AI has failed to move
+// on the exact same turn several times in a row — prevents a rare AI edge case
+// from softlocking the whole table forever.
+function emergencyBotAct(){
+  const pid = state.currentPlayerId;
+  const player = state.players[pid];
+  if(state.currentCombo){ applyPass(pid); return; }
+  let card = state.firstMove ? player.hand.find(c=>c.r===0 && c.s===0) : null;
+  if(!card) card = player.hand.slice().sort((a,b)=> a.r-b.r || a.s-b.s)[0];
+  if(!card){ applyPass(pid); return; }
+  applyPlay(pid, [card], classifyCombo([card]));
 }
 
 function scheduleBotIfNeeded(){
@@ -1385,7 +1419,18 @@ async function maybeRunHostBotLoop(){
         return;
       }
       state = room.game;
-      botAct();
+
+      const sig = pid+':'+(state.currentCombo ? state.currentCombo.cards.map(key).sort().join(',') : 'LEAD')+':'+player_handLen(state,pid);
+      if(sig===botStallSignature) botStallCount++; else { botStallSignature = sig; botStallCount = 0; }
+
+      if(botStallCount>=4){
+        console.warn('Bot stalled on the same turn '+botStallCount+' times — forcing a safe fallback move.', sig);
+        emergencyBotAct();
+        botStallSignature = null; botStallCount = 0;
+      } else {
+        botAct();
+      }
+
       room.game = state;
       room.seq = (room.seq||0)+1;
       const ok = await setRoom(roomCode, room);
@@ -1393,7 +1438,7 @@ async function maybeRunHostBotLoop(){
       render(false);
       if(state.finished) showOverlay();
     }catch(e){
-      // Swallow — a stuck bot loop is worse than a skipped turn; the next poll retries.
+      console.error('Bot turn failed, will retry:', e);
     }finally{
       if(th) th.classList.remove('show');
       botBusy = false;
@@ -1401,6 +1446,7 @@ async function maybeRunHostBotLoop(){
     }
   }, 300 + Math.random()*250);
 }
+function player_handLen(st, pid){ return st.players[pid].hand.length; }
 
 async function hostStartNewRound(){
   const room = await getRoom(roomCode);
