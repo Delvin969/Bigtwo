@@ -581,6 +581,21 @@
   .battle-odds-row.winner{color:#4fae5e;font-weight:700;}
   .battle-pot-items{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
   .battle-pot-item{font-size:18px;background:rgba(0,0,0,0.3);border-radius:6px;padding:4px 6px;}
+  .battle-mode-badge{
+    font-size:9.5px;letter-spacing:0.5px;text-transform:uppercase;
+    padding:2px 7px;border-radius:8px;background:rgba(255,255,255,0.08);
+    color:var(--gold-bright);white-space:nowrap;
+  }
+  .battle-mode-card{
+    display:flex;gap:12px;align-items:flex-start;text-align:left;
+    padding:13px 14px;margin-bottom:9px;border-radius:12px;
+    border:1px solid var(--panel-border);background:rgba(255,255,255,0.03);
+    cursor:pointer;transition:border-color .15s, background .15s;
+  }
+  .battle-mode-card:hover{border-color:var(--gold);background:rgba(255,255,255,0.05);}
+  .battle-mode-icon{font-size:24px;flex-shrink:0;line-height:1;}
+  .battle-mode-name{font-family:'Cinzel',serif;font-weight:700;color:var(--gold-bright);font-size:13.5px;letter-spacing:0.5px;}
+  .battle-mode-desc{font-size:11px;color:rgba(247,241,227,0.65);margin-top:3px;line-height:1.4;}
   .case-card{
     background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:10px;
     padding:10px 8px;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;
@@ -839,12 +854,22 @@
   <button class="cases-corner-back" id="btn-battle-entry-back" title="Back to menu">←</button>
   <div class="center-col">
     <div class="panel">
-      <h3 style="cursor:default;">⚔️ Case Battles</h3>
-      <div class="caveat" style="margin-bottom:8px;">Create or join a Battle Room, then anyone inside it can start or join battles — winner takes everything, odds based on how much value each player pulled.</div>
-      <button id="btn-create-battle-room" style="width:100%;">Create Battle Room</button>
+      <h3 style="cursor:default;">🌐 Public Battles</h3>
+      <div class="caveat" style="margin-bottom:8px;">Open to anyone visiting this site right now — no code needed, just jump in.</div>
+      <button class="primary" id="btn-join-public-battles" style="width:100%;">Join Public Battles</button>
+      <div id="public-battles-setup" hidden style="margin-top:10px;">
+        <div class="caveat" style="margin-bottom:8px;">
+          Public battles need a one-time shared backend for this site. Click below once, then paste the ID it gives you into <span class="mono">PUBLIC_BATTLES_ID</span> near the top of the &lt;script&gt; tag and re-upload the file — after that, this button works for every visitor automatically.
+        </div>
+        <button id="btn-setup-public-battles" style="width:100%;">Set Up Public Battles</button>
+        <div id="public-battles-setup-result" style="margin-top:8px;"></div>
+      </div>
     </div>
     <div class="panel">
-      <div class="field-row">
+      <h3 style="cursor:default;">⚔️ Private Battle Room</h3>
+      <div class="caveat" style="margin-bottom:8px;">Prefer just your friends? Create or join a private room by code instead.</div>
+      <button id="btn-create-battle-room" style="width:100%;">Create Battle Room</button>
+      <div class="field-row" style="margin-top:8px;">
         <input type="text" id="join-battle-code-input" placeholder="Enter battle room code">
         <button id="btn-join-battle-room">Join</button>
       </div>
@@ -866,6 +891,7 @@
     <button class="primary" id="btn-new-battle" style="padding:12px;">+ New Battle</button>
     <div class="panel" id="new-battle-form" hidden>
       <h3 style="cursor:default;">Start a Battle</h3>
+      <div class="battle-type-chosen" id="battle-type-chosen"></div>
       <div class="field-row" style="margin-bottom:8px;">
         <select id="battle-case-select" style="flex:1;padding:9px;border-radius:8px;background:var(--panel-bg);color:var(--cream);border:1px solid var(--panel-border);"></select>
       </div>
@@ -888,6 +914,14 @@
     <div class="status-msg" id="battle-lobby-status"></div>
     <div class="divider">Open Battles</div>
     <div id="battle-list"></div>
+  </div>
+</div>
+
+<div class="case-opening-modal" id="battle-type-modal" hidden>
+  <div class="case-opening-card" style="width:min(560px,100%);">
+    <div class="case-opening-title">Choose Battle Type</div>
+    <div class="battle-type-grid" id="battle-type-grid"></div>
+    <button class="ghost" id="btn-battle-type-cancel" style="width:100%;margin-top:6px;">Cancel</button>
   </div>
 </div>
 
@@ -1420,6 +1454,76 @@ let battleRoomCode = null;
 let battlePollTimer = null;
 let openingBattleIds = new Set();   // battles this client is currently animating locally
 let shownBattleResultIds = new Set(); // battles whose result modal we've shown this session
+let selectedBattleType = null;
+
+// One shared room ID for the "Public Battles" button — every visitor joins the
+// same battle list with no code needed. Created once via the "Set Up Public
+// Battles" button on the entry screen; paste the resulting ID here and re-upload.
+const PUBLIC_BATTLES_ID = '';
+
+document.getElementById('btn-join-public-battles').addEventListener('click', async ()=>{
+  if(!PUBLIC_BATTLES_ID){
+    document.getElementById('public-battles-setup').hidden = false;
+    return;
+  }
+  setBattleEntryStatus('Joining public battles…');
+  const room = await getRoom(PUBLIC_BATTLES_ID);
+  if(!room){ setBattleEntryStatus('Could not reach public battles: '+(lastStorageError||'unknown error'), true); return; }
+  battleRoomCode = PUBLIC_BATTLES_ID;
+  enterBattleLobby(room);
+});
+document.getElementById('btn-setup-public-battles').addEventListener('click', async ()=>{
+  const resultEl = document.getElementById('public-battles-setup-result');
+  resultEl.innerHTML = '<span class="status-msg">Creating…</span>';
+  const room = { kind:'battleRoom', hostClientId: myClientId, seq:1, members:[], battles:[], public:true };
+  const code = await createRoom(room);
+  if(!code){ resultEl.innerHTML = `<span class="status-msg error">Could not create it: ${escapeHtml(lastStorageError||'unknown error')}</span>`; return; }
+  resultEl.innerHTML = `
+    <div class="status-msg">Created! Paste this into <span class="mono">PUBLIC_BATTLES_ID</span> near the top of the script, save, and re-upload:</div>
+    <div class="room-code-display" style="font-size:16px;letter-spacing:1px;padding:10px;margin-top:6px;word-break:break-all;">${escapeHtml(code)}</div>
+  `;
+});
+
+const BATTLE_TYPES = [
+  { id:'jackpot', icon:'🎰', name:'Jackpot', desc:'Odds based on value pulled — more value means a better chance, but never a sure thing. Winner takes everything.' },
+  { id:'normal',  icon:'🏆', name:'Normal',  desc:'Whoever pulls the highest total value across all rounds wins everything. No randomness.' },
+  { id:'higher',  icon:'💎', name:'Higher',  desc:'Whoever pulls the single best item (not the total) wins everything — one great pull can beat a big total.' },
+  { id:'shared',  icon:'🤝', name:'Shared',  desc:"No winner — the pot's total value is split evenly as coins for everyone who played. Lower risk." },
+];
+
+function renderBattleTypeGrid(){
+  const grid = document.getElementById('battle-type-grid');
+  grid.innerHTML = BATTLE_TYPES.map(t=>`
+    <div class="battle-mode-card" data-type="${t.id}">
+      <div class="battle-mode-icon">${t.icon}</div>
+      <div>
+        <div class="battle-mode-name">${t.name}</div>
+        <div class="battle-mode-desc">${t.desc}</div>
+      </div>
+    </div>
+  `).join('');
+  grid.querySelectorAll('.battle-mode-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      selectedBattleType = card.dataset.type;
+      const info = BATTLE_TYPES.find(t=>t.id===selectedBattleType);
+      document.getElementById('battle-type-chosen').innerHTML =
+        `<span class="battle-mode-badge">${info.icon} ${info.name}</span> <span class="platform-skip" id="btn-change-battle-type" style="display:inline;margin-top:0;">Change type</span>`;
+      document.getElementById('btn-change-battle-type').addEventListener('click', ()=>{
+        document.getElementById('new-battle-form').hidden = true;
+        document.getElementById('battle-type-modal').hidden = false;
+      });
+      document.getElementById('battle-type-modal').hidden = true;
+      document.getElementById('new-battle-form').hidden = false;
+      updateNewBattleCost();
+    });
+  });
+}
+document.getElementById('btn-battle-type-cancel').addEventListener('click', ()=>{
+  document.getElementById('battle-type-modal').hidden = true;
+});
+document.getElementById('battle-type-modal').addEventListener('click', (e)=>{
+  if(e.target.id==='battle-type-modal') document.getElementById('battle-type-modal').hidden = true;
+});
 
 function getClaimedBattles(){
   try{ return JSON.parse(localGet('claimedBattles')||'[]'); }catch(e){ return []; }
@@ -1452,9 +1556,11 @@ function updateNewBattleCost(){
 document.getElementById('battle-case-select').addEventListener('change', updateNewBattleCost);
 document.getElementById('battle-rounds-select').addEventListener('change', updateNewBattleCost);
 document.getElementById('btn-new-battle').addEventListener('click', ()=>{
-  const form = document.getElementById('new-battle-form');
-  form.hidden = !form.hidden;
-  if(!form.hidden) updateNewBattleCost();
+  selectedBattleType = null;
+  document.getElementById('battle-type-chosen').innerHTML = '';
+  document.getElementById('new-battle-form').hidden = true;
+  document.getElementById('battle-type-modal').hidden = false;
+  renderBattleTypeGrid();
 });
 
 document.getElementById('btn-open-battles').addEventListener('click', ()=>{
@@ -1505,6 +1611,7 @@ document.getElementById('btn-copy-battle-invite').addEventListener('click', asyn
 });
 
 document.getElementById('btn-confirm-new-battle').addEventListener('click', async ()=>{
+  if(!selectedBattleType){ setBattleLobbyStatus('Choose a battle type first.', true); return; }
   const caseId = document.getElementById('battle-case-select').value;
   const rounds = parseInt(document.getElementById('battle-rounds-select').value,10);
   const maxPlayers = parseInt(document.getElementById('battle-maxplayers-select').value,10);
@@ -1516,7 +1623,7 @@ document.getElementById('btn-confirm-new-battle').addEventListener('click', asyn
   if(!room){ setBattleLobbyStatus('Could not reach the room: '+(lastStorageError||''), true); return; }
   room.battles = room.battles||[];
   room.battles.push({
-    id: genBattleId(), caseId, rounds, maxPlayers,
+    id: genBattleId(), caseId, rounds, maxPlayers, type: selectedBattleType,
     creatorClientId: myClientId,
     players: [{clientId:myClientId, name:myProfileName}],
     status:'waiting', results:{}, winnerId:null, settledAt:null
@@ -1570,11 +1677,12 @@ function renderBattleList(room){
       actionHtml = `<button class="battle-view-btn" data-id="${b.id}">View Result</button>`;
     }
 
+    const typeInfo = BATTLE_TYPES.find(t=>t.id===b.type) || BATTLE_TYPES[0];
     card.innerHTML = `
       <div class="battle-card-head">
         <div class="icon">${c.icon}</div>
         <div class="info">
-          <div class="name">${escapeHtml(c.name)} × ${b.rounds}</div>
+          <div class="name">${escapeHtml(c.name)} × ${b.rounds} <span class="battle-mode-badge">${typeInfo.icon} ${typeInfo.name}</span></div>
           <div class="meta">🪙${c.price*b.rounds} to join · ${b.maxPlayers} players · started by ${escapeHtml(b.players[0]?b.players[0].name:'?')}</div>
         </div>
       </div>
@@ -1712,17 +1820,30 @@ async function trySettleBattle(b){
   const fb = fresh.battles.find(x=>x.id===b.id);
   if(!fb || fb.status!=='opening' || Object.keys(fb.results).length < fb.players.length) return;
 
-  const entries = fb.players.map(p=>({clientId:p.clientId, totalValue: (fb.results[p.clientId]&&fb.results[p.clientId].totalValue)||0}));
+  const type = fb.type || 'normal';
+  const entries = fb.players.map(p=>{
+    const res = fb.results[p.clientId] || {items:[], totalValue:0};
+    const bestItemValue = (res.items||[]).reduce((m,it)=>Math.max(m,it.value||0), 0);
+    return { clientId:p.clientId, totalValue: res.totalValue||0, bestItemValue };
+  });
   const totalPot = entries.reduce((s,e)=>s+e.totalValue,0);
-  let winnerId;
-  if(totalPot<=0){
-    winnerId = entries[Math.floor(Math.random()*entries.length)].clientId;
-  } else {
-    let r = Math.random()*totalPot;
-    winnerId = entries[entries.length-1].clientId;
-    for(const e of entries){ r -= e.totalValue; if(r<=0){ winnerId = e.clientId; break; } }
+
+  if(type==='shared'){
+    fb.winnerId = null;
+    fb.sharePerPlayer = Math.floor(totalPot / entries.length);
+  } else if(type==='higher'){
+    fb.winnerId = entries.reduce((best,e)=> e.bestItemValue>best.bestItemValue ? e : best, entries[0]).clientId;
+  } else if(type==='normal'){
+    fb.winnerId = entries.reduce((best,e)=> e.totalValue>best.totalValue ? e : best, entries[0]).clientId;
+  } else { // jackpot — random winner, odds weighted by how much value each player pulled
+    if(totalPot<=0){
+      fb.winnerId = entries[Math.floor(Math.random()*entries.length)].clientId;
+    } else {
+      let r = Math.random()*totalPot;
+      fb.winnerId = entries[entries.length-1].clientId;
+      for(const e of entries){ r -= e.totalValue; if(r<=0){ fb.winnerId = e.clientId; break; } }
+    }
   }
-  fb.winnerId = winnerId;
   fb.status = 'settled';
   fb.settledAt = Date.now();
   fresh.seq = (fresh.seq||0)+1;
@@ -1730,8 +1851,16 @@ async function trySettleBattle(b){
 }
 
 async function claimIfWon(b){
-  if(b.status!=='settled' || b.winnerId!==myClientId) return;
+  if(b.status!=='settled') return;
   if(getClaimedBattles().includes(b.id)) return;
+  const type = b.type || 'normal';
+  if(type==='shared'){
+    if(!b.players.some(p=>p.clientId===myClientId)) return;
+    addCoins(b.sharePerPlayer||0);
+    markBattleClaimed(b.id);
+    return;
+  }
+  if(b.winnerId!==myClientId) return;
   Object.values(b.results).forEach(res=>{
     (res.items||[]).forEach(it=>{
       inventory.push({ caseId:b.caseId, name:it.name, icon:it.icon, rarity:it.rarity, value:it.value, ts:Date.now() });
@@ -1743,27 +1872,44 @@ async function claimIfWon(b){
 
 function showBattleResult(b){
   shownBattleResultIds.add(b.id);
+  const type = b.type || 'normal';
   const c = CASES.find(x=>x.id===b.caseId);
-  const entries = b.players.map(p=>({
-    clientId:p.clientId, name:p.name,
-    totalValue: (b.results[p.clientId]&&b.results[p.clientId].totalValue)||0,
-    items: (b.results[p.clientId]&&b.results[p.clientId].items)||[]
-  }));
+  const entries = b.players.map(p=>{
+    const res = b.results[p.clientId] || {items:[], totalValue:0};
+    return {
+      clientId:p.clientId, name:p.name,
+      totalValue: res.totalValue||0,
+      items: res.items||[],
+      bestItemValue: (res.items||[]).reduce((m,it)=>Math.max(m,it.value||0),0),
+    };
+  });
   const totalPot = entries.reduce((s,e)=>s+e.totalValue,0) || 1;
   const winner = entries.find(e=>e.clientId===b.winnerId);
   const rows = entries.map(e=>{
     const pct = ((e.totalValue/totalPot)*100).toFixed(1);
-    const isWinner = e.clientId===b.winnerId;
+    const isWinner = type!=='shared' && e.clientId===b.winnerId;
+    const metric = type==='higher' ? `best pull 🪙${e.bestItemValue}` : `🪙${e.totalValue}`;
     return `<div class="battle-odds-row${isWinner?' winner':''}">
-      <span>${escapeHtml(e.name)}${e.clientId===myClientId?' (You)':''} — 🪙${e.totalValue}</span>
-      <span class="pct">${pct}%${isWinner?' 🏆':''}</span>
+      <span>${escapeHtml(e.name)}${e.clientId===myClientId?' (You)':''} — ${metric}</span>
+      <span class="pct">${type==='shared'?'':pct+'%'}${isWinner?' 🏆':''}</span>
     </div>`;
   }).join('');
   const potIcons = entries.flatMap(e=>e.items).map(it=>`<span class="battle-pot-item" title="${escapeHtml(it.name)}">${it.icon}</span>`).join('');
-  document.getElementById('battle-result-title').textContent = `${c?c.icon:''} ${c?c.name:''} Battle`;
+  const typeInfo = BATTLE_TYPES.find(t=>t.id===type) || BATTLE_TYPES[0];
+  let outcomeHtml;
+  if(type==='shared'){
+    outcomeHtml = `Shared payout: everyone gets <b style="color:var(--gold-bright);">🪙${b.sharePerPlayer||0}</b> — no items awarded, pot value split evenly.`;
+  } else if(type==='higher'){
+    outcomeHtml = `Highest single pull wins: <b style="color:var(--gold-bright);">${escapeHtml(winner?winner.name:'?')}</b> takes everything.`;
+  } else if(type==='normal'){
+    outcomeHtml = `Highest total value wins: <b style="color:var(--gold-bright);">${escapeHtml(winner?winner.name:'?')}</b> takes everything.`;
+  } else {
+    outcomeHtml = `Jackpot winner (odds by value pulled): <b style="color:var(--gold-bright);">${escapeHtml(winner?winner.name:'?')}</b> takes everything.`;
+  }
+  document.getElementById('battle-result-title').textContent = `${typeInfo.icon} ${c?c.icon:''} ${c?c.name:''} — ${typeInfo.name} Battle`;
   document.getElementById('battle-result-body').innerHTML = `
     ${rows}
-    <div class="caveat" style="margin:10px 0 4px;">Winner: <b style="color:var(--gold-bright);">${escapeHtml(winner?winner.name:'?')}</b> takes everything</div>
+    <div class="caveat" style="margin:10px 0 4px;">${outcomeHtml}</div>
     <div class="battle-pot-items">${potIcons}</div>
   `;
   document.getElementById('battle-result-modal').hidden = false;
@@ -1789,7 +1935,7 @@ function startBattlePolling(){
         runMyBattleRounds(b.id);
       }
       if(b.status==='opening') trySettleBattle(b);
-      if(b.status==='settled' && b.winnerId===myClientId) claimIfWon(b);
+      if(b.status==='settled' && (b.winnerId===myClientId || (b.type==='shared' && imIn))) claimIfWon(b);
       if(b.status==='settled' && imIn && !shownBattleResultIds.has(b.id)) showBattleResult(b);
     }
   }, 3000);
