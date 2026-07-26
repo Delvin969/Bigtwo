@@ -319,6 +319,10 @@
     position:fixed;top:10px;right:10px;z-index:60;
     display:flex;flex-direction:column;gap:8px;
   }
+  .corner-fabs-left{
+    position:fixed;top:10px;left:10px;z-index:60;
+    display:flex;flex-direction:column;gap:8px;
+  }
   .corner-fab{
     width:38px;height:38px;padding:0;
     display:flex;align-items:center;justify-content:center;
@@ -538,6 +542,14 @@
     border-radius:20px;padding:6px 16px;
   }
   .cases-header{display:flex;justify-content:center;align-items:center;}
+  .daily-case-banner{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:linear-gradient(120deg, rgba(243,221,143,0.12), rgba(205,164,52,0.08));
+    border:1px solid var(--gold); border-radius:10px; padding:10px 14px;
+  }
+  .daily-case-note{font-size:12px;color:var(--cream);}
+  #btn-claim-daily{padding:8px 14px;font-size:12px;white-space:nowrap;}
+  #btn-claim-daily:disabled{opacity:0.4;}
   .case-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
 
   /* ===== Case Battles ===== */
@@ -797,6 +809,11 @@
     </div>
     <div class="status-msg" id="cases-status"></div>
 
+    <div class="daily-case-banner" id="daily-case-banner">
+      <div class="daily-case-note" id="daily-case-note"></div>
+      <button class="primary" id="btn-claim-daily">Claim Free Case</button>
+    </div>
+
     <div class="case-grid" id="case-grid"></div>
 
     <div class="divider">Your Items</div>
@@ -899,6 +916,9 @@
 
 <!-- ===== GAME SCREEN ===== -->
 <div class="screen" id="screen-game">
+  <div class="corner-fabs-left">
+    <button class="corner-fab" id="fab-menu" type="button" title="Back to Menu">🏠</button>
+  </div>
   <div class="online-bar" id="online-bar" hidden>
     Room <span class="code" id="online-bar-code"></span>
     <button class="ghost" id="btn-leave-table">Leave Table</button>
@@ -1147,15 +1167,53 @@ function weightedPick(items){
   return weighted[weighted.length-1].it;
 }
 
+let lastDailyClaim = 0;
+const DAILY_CASE_ID = 'everyday'; // cheapest case — the daily freebie
+
 async function loadEconomy(){
   const c = await cloudGet('coins', false);
   if(c==null){ coins = 100; await cloudSet('coins', String(coins), false); }
   else { coins = parseInt(c,10) || 0; }
   const inv = await cloudGet('inventory', false);
   try{ inventory = inv ? JSON.parse(inv) : []; }catch(e){ inventory = []; }
+  const dc = await cloudGet('lastDailyClaim', false);
+  lastDailyClaim = dc ? (parseInt(dc,10) || 0) : 0;
 }
 async function saveCoins(){ await cloudSet('coins', String(coins), false); }
 async function saveInventory(){ await cloudSet('inventory', JSON.stringify(inventory), false); }
+async function saveLastDailyClaim(){ await cloudSet('lastDailyClaim', String(lastDailyClaim), false); }
+
+function dailyCaseAvailable(){ return Date.now() - lastDailyClaim >= 24*60*60*1000; }
+function dailyCaseTimeLeftText(){
+  const ms = 24*60*60*1000 - (Date.now() - lastDailyClaim);
+  if(ms<=0) return '';
+  const h = Math.floor(ms/3600000);
+  const m = Math.floor((ms%3600000)/60000);
+  return `${h}h ${m}m`;
+}
+function renderDailyBanner(){
+  const banner = document.getElementById('daily-case-banner');
+  if(!banner) return;
+  const c = CASES.find(x=>x.id===DAILY_CASE_ID);
+  const btn = document.getElementById('btn-claim-daily');
+  const note = document.getElementById('daily-case-note');
+  if(dailyCaseAvailable()){
+    btn.disabled = false;
+    btn.textContent = 'Claim Free Case';
+    note.textContent = `${c.icon} ${c.name} — free, once every 24h`;
+  } else {
+    btn.disabled = true;
+    btn.textContent = 'Already claimed today';
+    note.textContent = `Next free ${c.name} in ${dailyCaseTimeLeftText()}`;
+  }
+}
+async function claimDailyCase(){
+  if(!dailyCaseAvailable()) return;
+  lastDailyClaim = Date.now();
+  saveLastDailyClaim();
+  renderDailyBanner();
+  await openCase(DAILY_CASE_ID, true);
+}
 
 function addCoins(n){
   coins += n;
@@ -1272,16 +1330,18 @@ function sellItem(name, rarity, mode){
   renderCasesGrid();
 }
 
-async function openCase(caseId){
+async function openCase(caseId, free){
   if(caseOpening) return;
   const c = CASES.find(x=>x.id===caseId);
   if(!c) return;
-  if(coins < c.price){ setCasesStatus('Not enough coins for this case.'); return; }
+  if(!free && coins < c.price){ setCasesStatus('Not enough coins for this case.'); return; }
   caseOpening = true;
   setCasesStatus('');
-  coins -= c.price;
-  saveCoins();
-  updateCoinBadges();
+  if(!free){
+    coins -= c.price;
+    saveCoins();
+    updateCoinBadges();
+  }
   renderCasesGrid();
 
   const won = weightedPick(c.items);
@@ -1349,9 +1409,11 @@ document.getElementById('btn-open-cases').addEventListener('click', ()=>{
   updateCoinBadges();
   renderCasesGrid();
   renderInventory();
+  renderDailyBanner();
   document.getElementById('case-opening-area').hidden = true;
 });
 document.getElementById('btn-cases-back').addEventListener('click', ()=>{ showScreen('screen-menu'); });
+document.getElementById('btn-claim-daily').addEventListener('click', claimDailyCase);
 
 /* ===================== Case Battles ===================== */
 let battleRoomCode = null;
@@ -1730,7 +1792,7 @@ function startBattlePolling(){
       if(b.status==='settled' && b.winnerId===myClientId) claimIfWon(b);
       if(b.status==='settled' && imIn && !shownBattleResultIds.has(b.id)) showBattleResult(b);
     }
-  }, 2000);
+  }, 3000);
 }
 function stopBattlePolling(){ if(battlePollTimer){ clearInterval(battlePollTimer); battlePollTimer=null; } }
 
@@ -1818,6 +1880,7 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<
 const NAMES = ['You','West','North','East'];
 let state = null;
 let selectedKeys = new Set();
+let gameEpoch = 0; // bumped whenever a new game replaces state, so late-firing bot timers from a previous game/room can detect they're stale and no-op
 
 // multiplayer / identity
 let mode = 'local';        // 'local' (vs bots offline) | 'online' (room)
@@ -1856,6 +1919,7 @@ function freshGameState(namesArr, botFlagsArr){
   let starter = 0;
   hands.forEach((h,i)=>{ if(h.some(c=>c.r===0 && c.s===0)) starter=i; });
   return {
+    gid: 'g'+Date.now().toString(36)+Math.random().toString(36).slice(2,8),
     players: hands.map((h,i)=>({ id:i, hand:h, isBot: !!botFlagsArr[i] })),
     currentPlayerId: starter,
     currentCombo: null,
@@ -1881,6 +1945,7 @@ function newGame(){
   mySeatIndex = 0;
   seatNames = NAMES.slice();
   coinsAwardedForGame = false;
+  gameEpoch++;
   stopLobbyPolling();
   stopGamePolling();
   state = freshGameState(NAMES, [false,true,true,true]);
@@ -1993,7 +2058,9 @@ function scheduleBotIfNeeded(){
   const seat = document.getElementById(domSeatIdFor(state.currentPlayerId));
   const th = seat.querySelector('.thinking');
   th.classList.add('show');
+  const myEpoch = gameEpoch;
   setTimeout(()=>{
+    if(myEpoch!==gameEpoch) return; // this game was left/replaced while we were "thinking"
     th.classList.remove('show');
     botAct();
     render(false);
@@ -2312,6 +2379,26 @@ function genRoomCode(){
   return s;
 }
 
+// Wraps fetch with automatic retry on HTTP 429 (rate limited) using backoff
+// with jitter, since jsonblob's free anonymous tier is capped at 60 req/min
+// per IP and a single slow moment (several people testing at once, a burst
+// of clicks) can trip that. Other failures are returned as-is immediately.
+async function fetchWithBackoff(url, options){
+  const maxAttempts = 4;
+  for(let attempt=0; attempt<maxAttempts; attempt++){
+    let res;
+    try{ res = await fetch(url, options); }
+    catch(e){ if(attempt===maxAttempts-1) throw e; res=null; }
+    if(res && res.status!==429) return res;
+    if(attempt<maxAttempts-1){
+      const wait = 500*Math.pow(2,attempt) + Math.random()*300;
+      await new Promise(r=>setTimeout(r, wait));
+    } else if(res){
+      return res; // out of retries, hand back the last (429) response
+    }
+  }
+}
+
 // Create a brand-new room. Returns the room code (and mutates roomObj.code
 // to match) or null on failure — check lastStorageError for why.
 async function createRoom(roomObj){
@@ -2323,7 +2410,7 @@ async function createRoom(roomObj){
     return ok ? code : null;
   }
   try{
-    const res = await fetch('https://jsonblob.com/api/jsonBlob', {
+    const res = await fetchWithBackoff('https://jsonblob.com/api/jsonBlob', {
       method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(roomObj)
     });
     if(!res.ok){ lastStorageError = 'jsonblob.com create failed: HTTP '+res.status; return null; }
@@ -2343,7 +2430,7 @@ async function getRoom(code){
     try{ return JSON.parse(raw); }catch(e){ return null; }
   }
   try{
-    const res = await fetch(`https://jsonblob.com/api/jsonBlob/${encodeURIComponent(code)}`);
+    const res = await fetchWithBackoff(`https://jsonblob.com/api/jsonBlob/${encodeURIComponent(code)}`);
     if(res.status===404) return null;
     if(!res.ok){ lastStorageError = 'jsonblob.com read failed: HTTP '+res.status; return null; }
     return await res.json();
@@ -2353,7 +2440,7 @@ async function setRoom(code, obj){
   lastStorageError = null;
   if(inClaudeEnv()) return await cloudSet('room:'+code, JSON.stringify(obj), true);
   try{
-    const res = await fetch(`https://jsonblob.com/api/jsonBlob/${encodeURIComponent(code)}`, {
+    const res = await fetchWithBackoff(`https://jsonblob.com/api/jsonBlob/${encodeURIComponent(code)}`, {
       method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(obj)
     });
     if(!res.ok){ lastStorageError = 'jsonblob.com write failed: HTTP '+res.status; return false; }
@@ -2425,10 +2512,12 @@ function startLobbyPolling(){
 }
 function stopLobbyPolling(){ if(lobbyPollTimer){ clearInterval(lobbyPollTimer); lobbyPollTimer=null; } }
 
+let knownGameId = null;
 function adoptRoomGame(room){
   seatNames = room.seats.map(s=> s ? s.name : 'Bot');
   const idx = room.seats.findIndex(s=>s && s.clientId===myClientId);
   if(idx!==-1) mySeatIndex = idx;
+  if(room.game && room.game.gid!==knownGameId){ knownGameId = room.game.gid; gameEpoch++; }
   state = room.game;
   if(!state.finished) coinsAwardedForGame = false;
   lastKnownSeq = room.seq;
@@ -2475,7 +2564,14 @@ async function maybeRunHostBotLoop(){
   const seatDom = document.getElementById(domSeatIdFor(pid));
   const th = seatDom ? seatDom.querySelector('.thinking') : null;
   if(th) th.classList.add('show');
+  const myEpoch = gameEpoch;
+  const myRoomCode = roomCode;
   setTimeout(async ()=>{
+    if(myEpoch!==gameEpoch || myRoomCode!==roomCode){
+      if(th) th.classList.remove('show');
+      botBusy = false;
+      return; // left this room/game while the bot was "thinking"
+    }
     try{
       const room = await getRoom(roomCode);
       if(!room || room.seq!==lastKnownSeq || !room.game || room.game.finished ||
@@ -2603,19 +2699,21 @@ document.getElementById('btn-start-game').addEventListener('click', async ()=>{
   enterGameScreen(room);
 });
 
-document.getElementById('btn-leave-lobby').addEventListener('click', ()=>{
+function leaveToMenu(){
   stopLobbyPolling();
-  mode='local'; roomCode=null; isHost=false;
-  showScreen('screen-menu');
-});
-
-document.getElementById('btn-leave-table').addEventListener('click', ()=>{
   stopGamePolling();
+  stopBattlePolling();
   mode='local'; roomCode=null; isHost=false;
+  gameEpoch++; // invalidate any bot timer still pending from the game we're leaving
   document.getElementById('online-bar').hidden = true;
   document.getElementById('overlay').hidden = true;
+  updateCoinBadges();
   showScreen('screen-menu');
-});
+}
+
+document.getElementById('btn-leave-lobby').addEventListener('click', leaveToMenu);
+document.getElementById('btn-leave-table').addEventListener('click', leaveToMenu);
+document.getElementById('fab-menu').addEventListener('click', leaveToMenu);
 
 // corner studs
 (function addStuds(){
