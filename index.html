@@ -539,6 +539,36 @@
   }
   .cases-header{display:flex;justify-content:center;align-items:center;}
   .case-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+
+  /* ===== Case Battles ===== */
+  .battle-card{
+    background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:10px;
+    padding:10px 12px;margin-bottom:10px;
+  }
+  .battle-card.waiting{border-color:var(--panel-border);}
+  .battle-card.opening{border-color:var(--gold);box-shadow:0 0 12px rgba(205,164,52,0.25);}
+  .battle-card.settled{border-color:#4fae5e;}
+  .battle-card-head{display:flex;align-items:center;gap:10px;}
+  .battle-card-head .icon{font-size:24px;}
+  .battle-card-head .info{flex:1;min-width:0;}
+  .battle-card-head .name{font-size:13px;color:var(--cream);}
+  .battle-card-head .meta{font-size:10.5px;color:rgba(247,241,227,0.55);margin-top:2px;}
+  .battle-players{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;}
+  .battle-player-chip{
+    font-size:10.5px;padding:3px 8px;border-radius:12px;
+    background:rgba(255,255,255,0.06);color:var(--cream);
+  }
+  .battle-player-chip.you{background:rgba(205,164,52,0.25);color:var(--gold-bright);}
+  .battle-player-chip.empty{background:transparent;border:1px dashed rgba(255,255,255,0.15);color:rgba(247,241,227,0.35);}
+  .battle-empty{font-size:12px;color:rgba(247,241,227,0.4);text-align:center;padding:14px;}
+  .battle-odds-row{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:11.5px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06);
+  }
+  .battle-odds-row .pct{font-family:'JetBrains Mono',monospace;color:var(--gold-bright);}
+  .battle-odds-row.winner{color:#4fae5e;font-weight:700;}
+  .battle-pot-items{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
+  .battle-pot-item{font-size:18px;background:rgba(0,0,0,0.3);border-radius:6px;padding:4px 6px;}
   .case-card{
     background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:10px;
     padding:10px 8px;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;
@@ -740,6 +770,7 @@
 
     <button class="primary" id="btn-play-bots" style="padding:14px;">Play vs 3 Bots (offline)</button>
     <button id="btn-open-cases" style="padding:12px;">🎁 Case Opening</button>
+    <button id="btn-open-battles" style="padding:12px;">⚔️ Case Battles</button>
 
     <div class="divider">Multiplayer</div>
 
@@ -783,6 +814,71 @@
     </div>
     <div class="case-result" id="case-result" hidden></div>
     <button id="btn-case-continue" hidden style="width:100%;">Continue</button>
+  </div>
+</div>
+
+<!-- ===== BATTLE ROOM ENTRY SCREEN ===== -->
+<div class="screen" id="screen-battle-entry">
+  <button class="cases-corner-back" id="btn-battle-entry-back" title="Back to menu">←</button>
+  <div class="center-col">
+    <div class="panel">
+      <h3 style="cursor:default;">⚔️ Case Battles</h3>
+      <div class="caveat" style="margin-bottom:8px;">Create or join a Battle Room, then anyone inside it can start or join battles — winner takes everything, odds based on how much value each player pulled.</div>
+      <button id="btn-create-battle-room" style="width:100%;">Create Battle Room</button>
+    </div>
+    <div class="panel">
+      <div class="field-row">
+        <input type="text" id="join-battle-code-input" placeholder="Enter battle room code">
+        <button id="btn-join-battle-room">Join</button>
+      </div>
+    </div>
+    <div class="status-msg" id="battle-entry-status"></div>
+  </div>
+</div>
+
+<!-- ===== BATTLE LOBBY SCREEN ===== -->
+<div class="screen" id="screen-battle-lobby">
+  <button class="cases-corner-back" id="btn-battle-lobby-back" title="Back to menu">←</button>
+  <div class="center-col" style="max-width:640px;">
+    <div class="cases-header">
+      <div class="coin-badge" id="coin-badge-battle">🪙 <span>0</span></div>
+    </div>
+    <div class="room-code-display" id="battle-room-code" style="font-size:16px;letter-spacing:1px;padding:10px;word-break:break-all;"></div>
+    <button class="ghost" id="btn-copy-battle-invite" type="button">Copy Invite Link</button>
+
+    <button class="primary" id="btn-new-battle" style="padding:12px;">+ New Battle</button>
+    <div class="panel" id="new-battle-form" hidden>
+      <h3 style="cursor:default;">Start a Battle</h3>
+      <div class="field-row" style="margin-bottom:8px;">
+        <select id="battle-case-select" style="flex:1;padding:9px;border-radius:8px;background:var(--panel-bg);color:var(--cream);border:1px solid var(--panel-border);"></select>
+      </div>
+      <div class="field-row" style="margin-bottom:8px;">
+        <label style="flex:1;font-size:11.5px;color:rgba(247,241,227,0.7);">Rounds (cases each)
+          <select id="battle-rounds-select" style="width:100%;padding:9px;border-radius:8px;background:var(--panel-bg);color:var(--cream);border:1px solid var(--panel-border);margin-top:4px;">
+            <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option>
+          </select>
+        </label>
+        <label style="flex:1;font-size:11.5px;color:rgba(247,241,227,0.7);">Max Players
+          <select id="battle-maxplayers-select" style="width:100%;padding:9px;border-radius:8px;background:var(--panel-bg);color:var(--cream);border:1px solid var(--panel-border);margin-top:4px;">
+            <option value="2" selected>2</option><option value="3">3</option><option value="4">4</option>
+          </select>
+        </label>
+      </div>
+      <div class="status-msg" id="new-battle-cost"></div>
+      <button id="btn-confirm-new-battle" style="width:100%;">Create Battle</button>
+    </div>
+
+    <div class="status-msg" id="battle-lobby-status"></div>
+    <div class="divider">Open Battles</div>
+    <div id="battle-list"></div>
+  </div>
+</div>
+
+<div class="case-opening-modal" id="battle-result-modal" hidden>
+  <div class="case-opening-card" style="width:min(620px,100%);">
+    <div class="case-opening-title" id="battle-result-title">Battle Result</div>
+    <div id="battle-result-body"></div>
+    <button id="btn-battle-result-close" style="width:100%;margin-top:6px;">Close</button>
   </div>
 </div>
 
@@ -1256,6 +1352,388 @@ document.getElementById('btn-open-cases').addEventListener('click', ()=>{
   document.getElementById('case-opening-area').hidden = true;
 });
 document.getElementById('btn-cases-back').addEventListener('click', ()=>{ showScreen('screen-menu'); });
+
+/* ===================== Case Battles ===================== */
+let battleRoomCode = null;
+let battlePollTimer = null;
+let openingBattleIds = new Set();   // battles this client is currently animating locally
+let shownBattleResultIds = new Set(); // battles whose result modal we've shown this session
+
+function getClaimedBattles(){
+  try{ return JSON.parse(localGet('claimedBattles')||'[]'); }catch(e){ return []; }
+}
+function markBattleClaimed(id){
+  const list = getClaimedBattles();
+  if(!list.includes(id)){ list.push(id); localSet('claimedBattles', JSON.stringify(list)); }
+}
+function genBattleId(){ return 'b'+Math.random().toString(36).slice(2,9); }
+
+function setBattleEntryStatus(msg, isErr){
+  const el = document.getElementById('battle-entry-status');
+  el.textContent = msg||''; el.classList.toggle('error', !!isErr);
+}
+function setBattleLobbyStatus(msg, isErr){
+  const el = document.getElementById('battle-lobby-status');
+  el.textContent = msg||''; el.classList.toggle('error', !!isErr);
+}
+
+function populateBattleCaseSelect(){
+  const sel = document.getElementById('battle-case-select');
+  sel.innerHTML = CASES.map(c=>`<option value="${c.id}">${c.icon} ${escapeHtml(c.name)} (🪙${c.price}/round)</option>`).join('');
+}
+function updateNewBattleCost(){
+  const caseId = document.getElementById('battle-case-select').value;
+  const rounds = parseInt(document.getElementById('battle-rounds-select').value,10);
+  const c = CASES.find(x=>x.id===caseId);
+  document.getElementById('new-battle-cost').textContent = c ? `Cost to join: 🪙${c.price*rounds}` : '';
+}
+document.getElementById('battle-case-select').addEventListener('change', updateNewBattleCost);
+document.getElementById('battle-rounds-select').addEventListener('change', updateNewBattleCost);
+document.getElementById('btn-new-battle').addEventListener('click', ()=>{
+  const form = document.getElementById('new-battle-form');
+  form.hidden = !form.hidden;
+  if(!form.hidden) updateNewBattleCost();
+});
+
+document.getElementById('btn-open-battles').addEventListener('click', ()=>{
+  showScreen('screen-battle-entry');
+  setBattleEntryStatus('');
+});
+document.getElementById('btn-battle-entry-back').addEventListener('click', ()=>{ showScreen('screen-menu'); });
+document.getElementById('btn-battle-lobby-back').addEventListener('click', ()=>{ stopBattlePolling(); showScreen('screen-menu'); });
+
+document.getElementById('btn-create-battle-room').addEventListener('click', async ()=>{
+  setBattleEntryStatus('Creating…');
+  const room = { kind:'battleRoom', hostClientId: myClientId, seq:1, members:[{clientId:myClientId,name:myProfileName}], battles:[] };
+  const code = await createRoom(room);
+  if(!code){ setBattleEntryStatus('Could not create battle room: '+(lastStorageError||'unknown error'), true); return; }
+  battleRoomCode = code;
+  enterBattleLobby(room);
+});
+document.getElementById('btn-join-battle-room').addEventListener('click', async ()=>{
+  let code = document.getElementById('join-battle-code-input').value.trim();
+  if(inClaudeEnv()) code = code.toUpperCase();
+  if(!code){ setBattleEntryStatus('Enter a battle room code', true); return; }
+  setBattleEntryStatus('Joining…');
+  const room = await getRoom(code);
+  if(!room || room.kind!=='battleRoom'){ setBattleEntryStatus('Battle room not found: '+(lastStorageError||'check the code'), true); return; }
+  if(!room.members.some(m=>m.clientId===myClientId)){
+    room.members.push({clientId:myClientId, name:myProfileName});
+    room.seq = (room.seq||0)+1;
+    await setRoom(code, room);
+  }
+  battleRoomCode = code;
+  enterBattleLobby(room);
+});
+
+function enterBattleLobby(room){
+  showScreen('screen-battle-lobby');
+  document.getElementById('battle-room-code').textContent = room.code;
+  document.getElementById('new-battle-form').hidden = true;
+  populateBattleCaseSelect();
+  updateCoinBadges();
+  renderBattleList(room);
+  startBattlePolling();
+}
+
+document.getElementById('btn-copy-battle-invite').addEventListener('click', async ()=>{
+  const url = location.origin + location.pathname + '?battle=' + encodeURIComponent(battleRoomCode);
+  try{ await navigator.clipboard.writeText(url); setBattleLobbyStatus('Invite link copied!'); }
+  catch(e){ setBattleLobbyStatus(url); }
+});
+
+document.getElementById('btn-confirm-new-battle').addEventListener('click', async ()=>{
+  const caseId = document.getElementById('battle-case-select').value;
+  const rounds = parseInt(document.getElementById('battle-rounds-select').value,10);
+  const maxPlayers = parseInt(document.getElementById('battle-maxplayers-select').value,10);
+  const c = CASES.find(x=>x.id===caseId);
+  const cost = c.price*rounds;
+  if(coins < cost){ setBattleLobbyStatus('Not enough coins for this battle.', true); return; }
+  setBattleLobbyStatus('Creating battle…');
+  const room = await getRoom(battleRoomCode);
+  if(!room){ setBattleLobbyStatus('Could not reach the room: '+(lastStorageError||''), true); return; }
+  room.battles = room.battles||[];
+  room.battles.push({
+    id: genBattleId(), caseId, rounds, maxPlayers,
+    creatorClientId: myClientId,
+    players: [{clientId:myClientId, name:myProfileName}],
+    status:'waiting', results:{}, winnerId:null, settledAt:null
+  });
+  room.seq = (room.seq||0)+1;
+  const ok = await setRoom(battleRoomCode, room);
+  if(!ok){ setBattleLobbyStatus('Could not create battle: '+(lastStorageError||''), true); return; }
+  document.getElementById('new-battle-form').hidden = true;
+  setBattleLobbyStatus('');
+  renderBattleList(room);
+});
+
+function renderBattleList(room){
+  const wrap = document.getElementById('battle-list');
+  if(!room.battles || !room.battles.length){
+    wrap.innerHTML = '<div class="battle-empty">No battles yet — start one above.</div>';
+    return;
+  }
+  wrap.innerHTML = '';
+  room.battles.slice().reverse().forEach(b=>{
+    const c = CASES.find(x=>x.id===b.caseId);
+    if(!c) return;
+    const card = document.createElement('div');
+    card.className = 'battle-card '+b.status;
+    const youIn = b.players.some(p=>p.clientId===myClientId);
+    const isFull = b.players.length>=b.maxPlayers;
+    const isCreator = b.creatorClientId===myClientId;
+
+    const chips = [];
+    for(let i=0;i<b.maxPlayers;i++){
+      const p = b.players[i];
+      chips.push(p
+        ? `<span class="battle-player-chip${p.clientId===myClientId?' you':''}">${escapeHtml(p.name)}</span>`
+        : `<span class="battle-player-chip empty">Open slot</span>`);
+    }
+
+    let actionHtml = '';
+    if(b.status==='waiting'){
+      if(youIn){
+        actionHtml = (isCreator && b.players.length>=2)
+          ? `<button class="battle-start-btn" data-id="${b.id}">Start Now (${b.players.length}/${b.maxPlayers})</button>`
+          : `<div class="caveat">Waiting for players… (${b.players.length}/${b.maxPlayers})</div>`;
+      } else if(!isFull){
+        actionHtml = `<button class="battle-join-btn" data-id="${b.id}">Join · 🪙${c.price*b.rounds}</button>`;
+      } else {
+        actionHtml = `<div class="caveat">Battle is full.</div>`;
+      }
+    } else if(b.status==='opening'){
+      actionHtml = `<div class="caveat">⚔️ Battle in progress…</div>`;
+    } else if(b.status==='settled'){
+      actionHtml = `<button class="battle-view-btn" data-id="${b.id}">View Result</button>`;
+    }
+
+    card.innerHTML = `
+      <div class="battle-card-head">
+        <div class="icon">${c.icon}</div>
+        <div class="info">
+          <div class="name">${escapeHtml(c.name)} × ${b.rounds}</div>
+          <div class="meta">🪙${c.price*b.rounds} to join · ${b.maxPlayers} players · started by ${escapeHtml(b.players[0]?b.players[0].name:'?')}</div>
+        </div>
+      </div>
+      <div class="battle-players">${chips.join('')}</div>
+      ${actionHtml}
+    `;
+    const joinBtn = card.querySelector('.battle-join-btn');
+    if(joinBtn) joinBtn.addEventListener('click', ()=>joinBattle(b.id));
+    const startBtn = card.querySelector('.battle-start-btn');
+    if(startBtn) startBtn.addEventListener('click', ()=>forceStartBattle(b.id));
+    const viewBtn = card.querySelector('.battle-view-btn');
+    if(viewBtn) viewBtn.addEventListener('click', ()=>showBattleResult(b));
+    wrap.appendChild(card);
+  });
+}
+
+async function joinBattle(battleId){
+  const room = await getRoom(battleRoomCode);
+  if(!room){ setBattleLobbyStatus('Connection issue: '+(lastStorageError||''), true); return; }
+  const b = room.battles.find(x=>x.id===battleId);
+  if(!b){ setBattleLobbyStatus('That battle no longer exists.', true); renderBattleList(room); return; }
+  if(b.players.some(p=>p.clientId===myClientId)){ renderBattleList(room); return; }
+  if(b.players.length>=b.maxPlayers){ setBattleLobbyStatus('That battle just filled up.', true); renderBattleList(room); return; }
+  const c = CASES.find(x=>x.id===b.caseId);
+  if(coins < c.price*b.rounds){ setBattleLobbyStatus('Not enough coins to join this battle.', true); return; }
+  b.players.push({clientId:myClientId, name:myProfileName});
+  if(b.players.length>=b.maxPlayers) b.status='opening';
+  room.seq = (room.seq||0)+1;
+  const ok = await setRoom(battleRoomCode, room);
+  if(!ok){ setBattleLobbyStatus('Could not join: '+(lastStorageError||''), true); return; }
+  renderBattleList(room);
+}
+
+async function forceStartBattle(battleId){
+  const room = await getRoom(battleRoomCode);
+  if(!room) return;
+  const b = room.battles.find(x=>x.id===battleId);
+  if(!b || b.status!=='waiting' || b.players.length<2) return;
+  b.status = 'opening';
+  room.seq = (room.seq||0)+1;
+  await setRoom(battleRoomCode, room);
+  renderBattleList(room);
+}
+
+function playBattleReel(c, roundNum, totalRounds){
+  return new Promise(resolve=>{
+    const won = weightedPick(c.items);
+    const total = 50, targetIndex = 44;
+    const reel = [];
+    for(let i=0;i<total;i++) reel.push(i===targetIndex ? won : weightedPick(c.items));
+    const track = document.getElementById('case-reel-track');
+    const viewport = document.getElementById('case-reel-viewport');
+    const area = document.getElementById('case-opening-area');
+    const resultBox = document.getElementById('case-result');
+    const titleEl = document.getElementById('case-opening-title');
+    const continueBtn = document.getElementById('btn-case-continue');
+    titleEl.textContent = `${c.name} — Round ${roundNum}/${totalRounds}`;
+    continueBtn.hidden = true;
+    resultBox.hidden = true;
+    area.hidden = false;
+    track.innerHTML = '';
+    reel.forEach(it=>{
+      const box = document.createElement('div');
+      box.className = 'reel-item rarity-'+it.rarity;
+      box.innerHTML = `<div class="reel-icon">${it.icon}</div><div class="reel-name">${escapeHtml(it.name)}</div>`;
+      track.appendChild(box);
+    });
+    track.style.transition = 'none';
+    track.style.transform = 'translateX(0px)';
+    void track.offsetWidth;
+    const stepW = 136;
+    const jitter = Math.random()*40-20;
+    const viewportCenter = viewport.clientWidth/2;
+    const targetX = -(targetIndex*stepW + stepW/2 - viewportCenter) + jitter;
+    requestAnimationFrame(()=>{
+      track.style.transition = 'transform 2.6s cubic-bezier(0.12, 0.85, 0.15, 1)';
+      track.style.transform = `translateX(${targetX}px)`;
+    });
+    setTimeout(()=>{
+      resultBox.hidden = false;
+      resultBox.className = 'case-result rarity-'+won.rarity;
+      resultBox.innerHTML = `<div class="result-icon">${won.icon}</div><div class="result-name">${escapeHtml(won.name)}</div><div class="result-rarity">${RARITY_LABEL[won.rarity]} · 🪙${won.value}</div>`;
+      setTimeout(()=> resolve(won), 850);
+    }, 2700);
+  });
+}
+
+async function submitBattleResult(battleId, items, totalValue){
+  for(let attempt=0; attempt<4; attempt++){
+    if(attempt>0) await new Promise(r=>setTimeout(r, 500*attempt));
+    const room = await getRoom(battleRoomCode);
+    if(!room) continue;
+    const b = room.battles.find(x=>x.id===battleId);
+    if(!b || b.results[myClientId]) return;
+    b.results[myClientId] = { items, totalValue };
+    room.seq = (room.seq||0)+1;
+    const ok = await setRoom(battleRoomCode, room);
+    if(ok) return;
+  }
+  setBattleLobbyStatus('Could not submit your battle result — check your connection.', true);
+}
+
+async function runMyBattleRounds(battleId){
+  if(openingBattleIds.has(battleId)) return;
+  openingBattleIds.add(battleId);
+  try{
+    const room = await getRoom(battleRoomCode);
+    const b = room && room.battles.find(x=>x.id===battleId);
+    if(!b || b.status!=='opening' || b.results[myClientId]) return;
+    const c = CASES.find(x=>x.id===b.caseId);
+    const cost = c.price*b.rounds;
+    if(coins < cost){
+      await submitBattleResult(battleId, [], 0); // can't afford it after all — don't block the whole battle forever
+      return;
+    }
+    coins -= cost;
+    saveCoins();
+    updateCoinBadges();
+    const pulled = [];
+    for(let i=0;i<b.rounds;i++){
+      pulled.push(await playBattleReel(c, i+1, b.rounds));
+    }
+    document.getElementById('case-opening-area').hidden = true;
+    await submitBattleResult(battleId, pulled, pulled.reduce((s,it)=>s+it.value,0));
+  } finally {
+    openingBattleIds.delete(battleId);
+  }
+}
+
+async function trySettleBattle(b){
+  if(b.status!=='opening' || b.creatorClientId!==myClientId) return; // only the creator settles — avoids double-settlement races
+  if(Object.keys(b.results).length < b.players.length) return;
+  const fresh = await getRoom(battleRoomCode);
+  if(!fresh) return;
+  const fb = fresh.battles.find(x=>x.id===b.id);
+  if(!fb || fb.status!=='opening' || Object.keys(fb.results).length < fb.players.length) return;
+
+  const entries = fb.players.map(p=>({clientId:p.clientId, totalValue: (fb.results[p.clientId]&&fb.results[p.clientId].totalValue)||0}));
+  const totalPot = entries.reduce((s,e)=>s+e.totalValue,0);
+  let winnerId;
+  if(totalPot<=0){
+    winnerId = entries[Math.floor(Math.random()*entries.length)].clientId;
+  } else {
+    let r = Math.random()*totalPot;
+    winnerId = entries[entries.length-1].clientId;
+    for(const e of entries){ r -= e.totalValue; if(r<=0){ winnerId = e.clientId; break; } }
+  }
+  fb.winnerId = winnerId;
+  fb.status = 'settled';
+  fb.settledAt = Date.now();
+  fresh.seq = (fresh.seq||0)+1;
+  await setRoom(battleRoomCode, fresh);
+}
+
+async function claimIfWon(b){
+  if(b.status!=='settled' || b.winnerId!==myClientId) return;
+  if(getClaimedBattles().includes(b.id)) return;
+  Object.values(b.results).forEach(res=>{
+    (res.items||[]).forEach(it=>{
+      inventory.push({ caseId:b.caseId, name:it.name, icon:it.icon, rarity:it.rarity, value:it.value, ts:Date.now() });
+    });
+  });
+  await saveInventory();
+  markBattleClaimed(b.id);
+}
+
+function showBattleResult(b){
+  shownBattleResultIds.add(b.id);
+  const c = CASES.find(x=>x.id===b.caseId);
+  const entries = b.players.map(p=>({
+    clientId:p.clientId, name:p.name,
+    totalValue: (b.results[p.clientId]&&b.results[p.clientId].totalValue)||0,
+    items: (b.results[p.clientId]&&b.results[p.clientId].items)||[]
+  }));
+  const totalPot = entries.reduce((s,e)=>s+e.totalValue,0) || 1;
+  const winner = entries.find(e=>e.clientId===b.winnerId);
+  const rows = entries.map(e=>{
+    const pct = ((e.totalValue/totalPot)*100).toFixed(1);
+    const isWinner = e.clientId===b.winnerId;
+    return `<div class="battle-odds-row${isWinner?' winner':''}">
+      <span>${escapeHtml(e.name)}${e.clientId===myClientId?' (You)':''} — 🪙${e.totalValue}</span>
+      <span class="pct">${pct}%${isWinner?' 🏆':''}</span>
+    </div>`;
+  }).join('');
+  const potIcons = entries.flatMap(e=>e.items).map(it=>`<span class="battle-pot-item" title="${escapeHtml(it.name)}">${it.icon}</span>`).join('');
+  document.getElementById('battle-result-title').textContent = `${c?c.icon:''} ${c?c.name:''} Battle`;
+  document.getElementById('battle-result-body').innerHTML = `
+    ${rows}
+    <div class="caveat" style="margin:10px 0 4px;">Winner: <b style="color:var(--gold-bright);">${escapeHtml(winner?winner.name:'?')}</b> takes everything</div>
+    <div class="battle-pot-items">${potIcons}</div>
+  `;
+  document.getElementById('battle-result-modal').hidden = false;
+}
+document.getElementById('btn-battle-result-close').addEventListener('click', ()=>{
+  document.getElementById('battle-result-modal').hidden = true;
+});
+document.getElementById('battle-result-modal').addEventListener('click', (e)=>{
+  if(e.target.id==='battle-result-modal') document.getElementById('battle-result-modal').hidden = true;
+});
+
+function startBattlePolling(){
+  stopBattlePolling();
+  battlePollTimer = setInterval(async ()=>{
+    if(!battleRoomCode) return;
+    const room = await getRoom(battleRoomCode);
+    if(!room) return;
+    renderBattleList(room);
+    updateCoinBadges();
+    for(const b of (room.battles||[])){
+      const imIn = b.players.some(p=>p.clientId===myClientId);
+      if(imIn && b.status==='opening' && !b.results[myClientId] && !openingBattleIds.has(b.id)){
+        runMyBattleRounds(b.id);
+      }
+      if(b.status==='opening') trySettleBattle(b);
+      if(b.status==='settled' && b.winnerId===myClientId) claimIfWon(b);
+      if(b.status==='settled' && imIn && !shownBattleResultIds.has(b.id)) showBattleResult(b);
+    }
+  }, 2000);
+}
+function stopBattlePolling(){ if(battlePollTimer){ clearInterval(battlePollTimer); battlePollTimer=null; } }
+
 
 /* ===================== Core logic ===================== */
 const RANKS = ['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
@@ -2194,6 +2672,13 @@ async function initApp(){
   if(urlRoom){
     document.getElementById('join-code-input').value = urlRoom;
     setMenuStatus('Room code filled in from your invite link — tap Join.');
+  }
+  const urlBattle = new URLSearchParams(location.search).get('battle');
+  if(urlBattle){
+    document.getElementById('join-battle-code-input').value = urlBattle;
+    showScreen('screen-battle-entry');
+    setBattleEntryStatus('Battle room code filled in from your invite link — tap Join.');
+    return;
   }
   showScreen('screen-platform');
 }
