@@ -529,6 +529,168 @@
     text-decoration:underline;cursor:pointer;
     margin-top:2px;
   }
+  /* ===== Case opening ===== */
+  .coin-badge{
+    align-self:center;
+    font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;
+    color:var(--gold-bright);
+    background:rgba(0,0,0,0.35);border:1px solid var(--gold);
+    border-radius:20px;padding:6px 16px;
+  }
+  .cases-header{display:flex;justify-content:center;align-items:center;}
+  .case-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .case-card{
+    background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:10px;
+    padding:10px 8px;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;
+  }
+  .case-card-head{cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;}
+  .case-card .icon{font-size:28px;}
+  .case-card .name{font-size:11.5px;color:var(--cream);}
+  .case-card .price{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--gold-bright);}
+  .case-card .case-open-btn{width:100%;padding:7px;font-size:12px;}
+  .case-card .case-open-btn:disabled{opacity:0.3;}
+  .case-preview{
+    width:100%;text-align:left;background:rgba(0,0,0,0.3);border-radius:8px;
+    padding:6px;display:flex;flex-direction:column;gap:3px;
+  }
+  .case-preview[hidden]{display:none;}
+  .cases-corner-back{
+    position:fixed;top:10px;left:10px;z-index:60;
+    width:38px;height:38px;padding:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px;line-height:1;
+    background:var(--panel-bg);border:1px solid var(--panel-border);
+    border-radius:9px;color:var(--gold-bright);cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,0.4);
+    transition:border-color .15s;
+  }
+  .cases-corner-back:hover{border-color:var(--gold);}
+  .preview-row{
+    display:grid;grid-template-columns:18px 1fr auto auto;gap:6px;align-items:center;
+    font-size:10px;padding:2px 4px;border-left:2px solid transparent;
+  }
+  .preview-row.rarity-common{border-color:#9aa4ad;}
+  .preview-row.rarity-uncommon{border-color:#4fae5e;}
+  .preview-row.rarity-rare{border-color:#4a90d9;}
+  .preview-row.rarity-epic{border-color:#a35fd6;}
+  .preview-row.rarity-legendary{border-color:#f3c23a;}
+  .preview-row.rarity-mythic{border-color:#ff3d9a;}
+  .preview-icon{font-size:13px;}
+  .preview-name{color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .preview-value{color:var(--gold-bright);font-family:'JetBrains Mono',monospace;}
+  .preview-chance{color:rgba(247,241,227,0.45);font-family:'JetBrains Mono',monospace;}
+
+  .case-opening-modal{
+    position:fixed;inset:0;z-index:70;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(3,8,6,0.92);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    animation:modalFadeIn .25s ease both;
+    padding:20px;
+  }
+  .case-opening-modal[hidden]{display:none;}
+  @keyframes modalFadeIn{ from{opacity:0;} to{opacity:1;} }
+  .case-opening-modal::before{
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(circle at 50% 42%, rgba(243,221,143,0.16), transparent 55%),
+      radial-gradient(circle at 50% 42%, rgba(255,61,154,0.10), transparent 70%);
+  }
+  .case-opening-card{
+    position:relative;z-index:1;
+    width:min(560px, 100%);
+    background:linear-gradient(165deg,#12251c,#080f0c);
+    border:1px solid var(--gold);border-radius:20px;
+    padding:26px 22px 22px;
+    box-shadow:0 0 60px rgba(243,221,143,0.18), 0 30px 80px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.04);
+    text-align:center;
+  }
+  .case-opening-title{
+    font-family:'Cinzel',serif;font-size:15px;letter-spacing:2px;
+    color:var(--gold-bright);text-transform:uppercase;margin-bottom:16px;
+  }
+  .reel-viewport{
+    position:relative;height:150px;overflow:hidden;border-radius:14px;
+    background:radial-gradient(ellipse at center, rgba(255,255,255,0.05), rgba(0,0,0,0.55));
+    border:1px solid var(--gold);
+    margin-bottom:18px;
+    box-shadow:inset 0 0 30px rgba(0,0,0,0.6), 0 0 24px rgba(243,221,143,0.12);
+  }
+  .reel-viewport::before, .reel-viewport::after{
+    content:'';position:absolute;top:0;bottom:0;width:70px;z-index:4;pointer-events:none;
+  }
+  .reel-viewport::before{left:0;background:linear-gradient(90deg, rgba(8,15,12,0.95), transparent);}
+  .reel-viewport::after{right:0;background:linear-gradient(-90deg, rgba(8,15,12,0.95), transparent);}
+  .reel-pointer{
+    position:absolute;left:50%;top:-4px;bottom:-4px;width:3px;background:var(--gold-bright);
+    transform:translateX(-50%);z-index:5;box-shadow:0 0 16px var(--gold-bright), 0 0 4px #fff;
+  }
+  .reel-track{display:flex;position:absolute;left:0;top:0;height:100%;will-change:transform;}
+  .reel-item{
+    width:120px;height:130px;margin:10px 8px;border-radius:12px;flex-shrink:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    background:linear-gradient(160deg, rgba(255,255,255,0.06), rgba(0,0,0,0.25));
+    border:1px solid rgba(255,255,255,0.12);
+  }
+  .reel-icon{font-size:42px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5));}
+  .reel-name{font-size:10.5px;color:rgba(247,241,227,0.75);text-align:center;padding:0 6px;}
+  .reel-item.rarity-common{border-color:#9aa4ad;}
+  .reel-item.rarity-uncommon{border-color:#4fae5e;}
+  .reel-item.rarity-rare{border-color:#4a90d9;}
+  .reel-item.rarity-epic{border-color:#a35fd6;}
+  .reel-item.rarity-legendary{border-color:#f3c23a;box-shadow:0 0 10px rgba(243,194,58,0.5);}
+  .reel-item.rarity-mythic{
+    border-color:#ff3d9a;box-shadow:0 0 14px rgba(255,61,154,0.6);
+    background:linear-gradient(120deg,rgba(255,61,154,0.15),rgba(120,80,255,0.15),rgba(255,61,154,0.15));
+    background-size:200% 200%;animation:mythicShimmer 1.6s linear infinite;
+  }
+  @keyframes mythicShimmer{
+    0%{background-position:0% 50%;}
+    100%{background-position:200% 50%;}
+  }
+
+  .case-result{
+    text-align:center;padding:26px 18px;border-radius:14px;
+    background:radial-gradient(ellipse at center, rgba(255,255,255,0.05), rgba(0,0,0,0.35));
+    border:1px solid var(--panel-border);
+    margin-bottom:16px;
+    animation:resultPop .4s cubic-bezier(0.2,0.9,0.3,1.3) both;
+  }
+  @keyframes resultPop{
+    from{opacity:0;transform:scale(0.75);}
+    to{opacity:1;transform:scale(1);}
+  }
+  .case-result .result-icon{font-size:64px;filter:drop-shadow(0 4px 14px rgba(0,0,0,0.6));}
+  .case-result .result-name{font-size:17px;color:var(--cream);margin-top:8px;font-weight:600;}
+  .case-result .result-rarity{font-size:12.5px;letter-spacing:2px;text-transform:uppercase;margin-top:5px;}
+  .case-result.rarity-common{border-color:#9aa4ad;} .case-result.rarity-common .result-rarity{color:#9aa4ad;}
+  .case-result.rarity-uncommon{border-color:#4fae5e;} .case-result.rarity-uncommon .result-rarity{color:#4fae5e;}
+  .case-result.rarity-rare{border-color:#4a90d9;} .case-result.rarity-rare .result-rarity{color:#4a90d9;}
+  .case-result.rarity-epic{border-color:#a35fd6;} .case-result.rarity-epic .result-rarity{color:#a35fd6;}
+  .case-result.rarity-legendary{border-color:#f3c23a;box-shadow:0 0 20px rgba(243,194,58,0.4);} .case-result.rarity-legendary .result-rarity{color:#f3c23a;}
+  .case-result.rarity-mythic{
+    border-color:#ff3d9a;box-shadow:0 0 30px rgba(255,61,154,0.55);
+    background:linear-gradient(120deg,rgba(255,61,154,0.18),rgba(120,80,255,0.18),rgba(255,61,154,0.18));
+    background-size:200% 200%;animation:mythicShimmer 1.6s linear infinite;
+  }
+  .case-result.rarity-mythic .result-rarity{color:#ff3d9a;}
+
+  .inventory-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .inv-item{
+    background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 4px;text-align:center;
+    border:1px solid rgba(255,255,255,0.08);font-size:10px;
+  }
+  .inv-item .icon{font-size:20px;}
+  .inv-item .count{color:var(--gold-bright);font-family:'JetBrains Mono',monospace;}
+  .inv-sell-row{display:flex;gap:4px;justify-content:center;margin-top:4px;}
+  .inv-sell-btn{padding:3px 6px;font-size:9px;border-radius:5px;}
+  .inv-item.rarity-common{border-color:#9aa4ad;}
+  .inv-item.rarity-uncommon{border-color:#4fae5e;}
+  .inv-item.rarity-rare{border-color:#4a90d9;}
+  .inv-item.rarity-epic{border-color:#a35fd6;}
+  .inv-item.rarity-legendary{border-color:#f3c23a;}
+  .inv-item.rarity-mythic{border-color:#ff3d9a;box-shadow:0 0 8px rgba(255,61,154,0.4);}
+  .inventory-empty{font-size:12px;color:rgba(247,241,227,0.4);text-align:center;padding:10px;}
 </style>
 </head>
 <body>
@@ -574,7 +736,10 @@
       <div class="caveat">Visible to other players in any room you join.</div>
     </div>
 
+    <div class="coin-badge" id="coin-badge-menu">🪙 <span>0</span></div>
+
     <button class="primary" id="btn-play-bots" style="padding:14px;">Play vs 3 Bots (offline)</button>
+    <button id="btn-open-cases" style="padding:12px;">🎁 Case Opening</button>
 
     <div class="divider">Multiplayer</div>
 
@@ -589,6 +754,35 @@
     </div>
     <div class="status-msg" id="menu-status"></div>
     <div class="caveat">Multiplayer syncs through shared cloud storage — moves are last-write-wins, so it's built for playing with friends rather than tamper-proof play.</div>
+  </div>
+</div>
+
+<!-- ===== CASE OPENING SCREEN ===== -->
+<div class="screen" id="screen-cases">
+  <button class="cases-corner-back" id="btn-cases-back" title="Back to menu">←</button>
+  <div class="center-col" style="max-width:560px;">
+    <div class="cases-header">
+      <div class="coin-badge" id="coin-badge-cases">🪙 <span>0</span></div>
+    </div>
+    <div class="status-msg" id="cases-status"></div>
+
+    <div class="case-grid" id="case-grid"></div>
+
+    <div class="divider">Your Items</div>
+    <div class="inventory-grid" id="inventory-grid"></div>
+    <div class="caveat">Cosmetic only — no real money involved. Earn coins by winning games. Watch for the shimmering Mythic tier — the rarest pull in every case.</div>
+  </div>
+</div>
+
+<div class="case-opening-modal" id="case-opening-area" hidden>
+  <div class="case-opening-card">
+    <div class="case-opening-title" id="case-opening-title">Opening…</div>
+    <div class="reel-viewport" id="case-reel-viewport">
+      <div class="reel-pointer"></div>
+      <div class="reel-track" id="case-reel-track"></div>
+    </div>
+    <div class="case-result" id="case-result" hidden></div>
+    <button id="btn-case-continue" hidden style="width:100%;">Continue</button>
   </div>
 </div>
 
@@ -692,6 +886,377 @@
 
 
 <script>
+/* ===================== Case Opening (cosmetic economy) ===================== */
+const RARITY_WEIGHTS = { common:550, uncommon:250, rare:120, epic:60, legendary:18, mythic:2 };
+const RARITY_LABEL = { common:'Common', uncommon:'Uncommon', rare:'Rare', epic:'Epic', legendary:'Legendary', mythic:'Mythic' };
+const RARITY_VALUE_MULT = { common:0.25, uncommon:0.5, rare:1.2, epic:3.5, legendary:10, mythic:35 };
+const WIN_COINS = 30;
+
+// Each case now carries 3 items per common/uncommon/rare/epic/legendary tier
+// plus 2 Mythic items (the rarest, biggest payout) — 17 items per case, so
+// repeat openings turn up real variety instead of the same handful of outcomes.
+// Coin values are derived from the case price. Weighted across the new rarity
+// odds (55% / 25% / 12% / 6% / 1.8% / 0.2%), the average payout lands around
+// ~87% of a case's cost — noticeably more generous than before, with Mythic
+// pulls (1-in-500) paying out 35x the case price as a real jackpot moment.
+function makeCase(id, name, price, icon, pool){
+  const items = [];
+  Object.entries(pool).forEach(([rarity, entries])=>{
+    entries.forEach(([itemName, itemIcon])=>{
+      items.push({ rarity, name:itemName, icon:itemIcon, value: Math.round(price*RARITY_VALUE_MULT[rarity]) });
+    });
+  });
+  return { id, name, price, icon, items };
+}
+
+const CASES = [
+  makeCase('everyday', 'Everyday Essentials Case', 40, '📦', {
+    common:    [['Socks','🧦'], ['Toothbrush','🪥'], ['Pencil','✏️']],
+    uncommon:  [['Coffee Mug','☕'], ['Umbrella','☂️'], ['Water Bottle','🧴']],
+    rare:      [['Headphones','🎧'], ['Desk Lamp','💡'], ['Blender','🍹']],
+    epic:      [['Wristwatch','⌚'], ['Bluetooth Speaker','🔊'], ['Air Purifier','🌬️']],
+    legendary: [['Diamond Ring','💎'], ['Antique Vase','🏺'], ['Gold Bar','🥇']],
+    mythic:    [['Solid Gold Toaster','🍞'], ['Diamond-Encrusted Espresso Machine','☕']],
+  }),
+  makeCase('beauty', 'Beauty Case', 55, '💄', {
+    common:    [['Lip Balm','💋'], ['Nail Polish','💅'], ['Hair Tie','🎀']],
+    uncommon:  [['Perfume','🌸'], ['Face Mask','🧖'], ['Makeup Brush Set','🖌️']],
+    rare:      [['Skincare Set','🧴'], ['Curling Iron','🌀'], ['Designer Perfume','🍾']],
+    epic:      [['Spa Day Voucher','🧖‍♀️'], ['Luxury Makeup Kit','💄'], ['Hair Styling Set','💇']],
+    legendary: [['Diamond Earrings','💎'], ['Gold Compact Mirror','🪞'], ['Couture Fragrance','✨']],
+    mythic:    [['24K Gold Facial Treatment','👑'], ['Diamond-Studded Vanity Set','🪞']],
+  }),
+  makeCase('pet', 'Pet Case', 65, '🐾', {
+    common:    [['Chew Toy','🦴'], ['Pet Bowl','🥣'], ['Pet Brush','🪮']],
+    uncommon:  [['Leash','🐕'], ['Pet Bed','🛏️'], ['Cat Tree','🐈']],
+    rare:      [['Designer Pet Outfit','🧥'], ['Pet Carrier','🧳'], ['Automatic Feeder','🍽️']],
+    epic:      [['GPS Pet Tracker','📡'], ['Grooming Spa Package','🛁'], ['Custom Pet Portrait','🖼️']],
+    legendary: [['Diamond Collar','💎'], ['Gold-Plated Pet Bowl','🥇'], ['Luxury Pet Bed','🛌']],
+    mythic:    [['Diamond-Encrusted Pet Throne','👑'], ['Private Pet Chef','🍽️']],
+  }),
+  makeCase('street', 'Street Style Case', 80, '🧢', {
+    common:    [['Cap','🧢'], ['Scarf','🧣'], ['Wristband','🎽']],
+    uncommon:  [['Sneakers','👟'], ['T-Shirt','👕'], ['Beanie','🧶']],
+    rare:      [['Sunglasses','🕶️'], ['Backpack','🎒'], ['Graphic Hoodie','🧥']],
+    epic:      [['Designer Jacket','🧥'], ['Designer Jeans','👖'], ['Limited Sneaker Drop','✨']],
+    legendary: [['Gold Chain','⛓️'], ['Custom Grillz','😬'], ['Signed Streetwear','🖋️']],
+    mythic:    [['Full Runway Wardrobe','👗'], ['Diamond-Studded Chain','⛓️']],
+  }),
+  makeCase('home', 'Home & Living Case', 95, '🏠', {
+    common:    [['Candle','🕯️'], ['Throw Pillow','🛋️'], ['Houseplant','🪴']],
+    uncommon:  [['Wall Art','🖼️'], ['Blanket','🧣'], ['Table Lamp','💡']],
+    rare:      [['Smart Speaker','🔊'], ['Air Fryer','🍟'], ['Cozy Rug','🟫']],
+    epic:      [['Smart Home Hub','🏠'], ['Home Theater System','🎬'], ['Massage Chair','💺']],
+    legendary: [['Chandelier','✨'], ['Home Sauna','🧖'], ['Wine Cellar','🍷']],
+    mythic:    [['Private Home Cinema','🎥'], ['Smart Mansion Upgrade','🏰']],
+  }),
+  makeCase('shoes', 'Shoes Case', 105, '👟', {
+    common:    [['Flip Flops','🩴'], ['Slides','🥿'], ['Sport Socks','🧦']],
+    uncommon:  [['Running Shoes','👟'], ['Skate Shoes','🛹'], ['Canvas Sneakers','👟']],
+    rare:      [['Basketball Shoes','🏀'], ['Boots','🥾'], ['Cleats','⚽']],
+    epic:      [['Designer Heels','👠'], ['Limited Edition Kicks','✨'], ['Custom Airbrushed Shoes','🎨']],
+    legendary: [['Golden Sneakers','🥇'], ['Diamond-Studded Heels','💎'], ['Signed Game-Worn Shoes','🖋️']],
+    mythic:    [['One-of-One Designer Collab','🌟'], ['Diamond-Soled Sneakers','💎']],
+  }),
+  makeCase('bag', 'Bag Case', 120, '🎒', {
+    common:    [['Tote Bag','🛍️'], ['Drawstring Bag','🎒'], ['Pencil Case','✏️']],
+    uncommon:  [['Backpack','🎒'], ['Messenger Bag','💼'], ['Fanny Pack','👝']],
+    rare:      [['Duffel Bag','🧳'], ['Crossbody Bag','👜'], ['Travel Backpack','🎒']],
+    epic:      [['Designer Handbag','👜'], ['Leather Briefcase','💼'], ['Limited Edition Tote','🛍️']],
+    legendary: [['Gold-Plated Clutch','✨'], ['Diamond Studded Purse','💎'], ['Couture Handbag','👑']],
+    mythic:    [['One-of-a-Kind Runway Bag','🌟'], ['Diamond-Encrusted Briefcase','💎']],
+  }),
+  makeCase('phone', 'Phone Case', 140, '📱', {
+    common:    [['Screen Protector','🛡️'], ['Phone Charm','🔗'], ['Pop Socket','📱']],
+    uncommon:  [['Charging Cable','🔌'], ['Phone Grip','📱'], ['Phone Stand','📲']],
+    rare:      [['Wireless Earbuds','🎧'], ['Power Bank','🔋'], ['MagSafe Case','🧲']],
+    epic:      [['Latest Smartphone','📱'], ['Foldable Phone','📲'], ['Pro Camera Phone','📷']],
+    legendary: [['Gold-Plated Phone','🥇'], ['Diamond Encrusted Phone','💎'], ['Custom Engraved Phone','✍️']],
+    mythic:    [['Prototype Unreleased Phone','🚀'], ['Diamond & Gold Limited Phone','💎']],
+  }),
+  makeCase('gaming', 'Gaming Case', 165, '🎮', {
+    common:    [['Controller Skin','🎮'], ['Mouse Pad','🖱️'], ['Gaming Sticker Pack','🕹️']],
+    uncommon:  [['Wired Controller','🎮'], ['Gaming Headset','🎧'], ['Mechanical Keycaps','⌨️']],
+    rare:      [['Gaming Mouse','🖱️'], ['RGB Keyboard','⌨️'], ['Racing Wheel','🏁']],
+    epic:      [['Gaming Chair','🪑'], ['VR Headset','🥽'], ['Ultrawide Monitor','🖥️']],
+    legendary: [['Custom Gaming PC','🖥️'], ['Esports Trophy','🏆'], ['Signed Pro Jersey','👕']],
+    mythic:    [['Full Esports Sponsorship','🏆'], ['Gold-Plated Gaming Rig','🖥️']],
+  }),
+  makeCase('tech', 'Tech Vault Case', 185, '🔌', {
+    common:    [['Charger','🔌'], ['USB Drive','💾'], ['Cable Organizer','🧵']],
+    uncommon:  [['Wireless Mouse','🖱️'], ['Keyboard','⌨️'], ['Webcam','📷']],
+    rare:      [['Smartwatch','⌚'], ['Tablet','📱'], ['Portable SSD','💽']],
+    epic:      [['Laptop','💻'], ['Gaming Console','🎮'], ['Drone','🚁']],
+    legendary: [['Rocket Prototype','🚀'], ['AI Robot','🤖'], ['Quantum Computer Chip','🧠']],
+    mythic:    [['Personal AI Assistant Robot','🤖'], ['Private Rocket Launch','🚀']],
+  }),
+  makeCase('bike', 'Bike Case', 205, '🚲', {
+    common:    [['Bike Bell','🔔'], ['Water Bottle','🧴'], ['Bike Grips','🚲']],
+    uncommon:  [['Bike Helmet','🪖'], ['Bike Lock','🔒'], ['Bike Pump','🔧']],
+    rare:      [['Mountain Bike','🚵'], ['BMX Bike','🚲'], ['Bike Rack','🚴']],
+    epic:      [['Road Bike','🚴'], ['Electric Bike','⚡'], ['Carbon Frame Bike','🏁']],
+    legendary: [['Gold-Plated Bike','🥇'], ['Custom Racing Bike','🏆'], ['Tour Champion Jersey','👕']],
+    mythic:    [['Championship Race Bike','🏆'], ['Diamond-Studded Bike Frame','💎']],
+  }),
+  makeCase('jewelry', 'Jewelry Case', 230, '💍', {
+    common:    [['Friendship Bracelet','📿'], ['Stud Earrings','✨'], ['Simple Ring','💍']],
+    uncommon:  [['Silver Necklace','📿'], ['Charm Bracelet','📿'], ['Pearl Earrings','🦪']],
+    rare:      [['Gemstone Ring','💍'], ['Gold Necklace','📿'], ['Sapphire Pendant','🔵']],
+    epic:      [['Diamond Bracelet','💎'], ['Emerald Ring','💚'], ['Designer Necklace','✨']],
+    legendary: [['Diamond Tiara','👑'], ['Ruby Necklace','❤️'], ['Platinum Ring','💍']],
+    mythic:    [['Royal Crown Jewels','👑'], ['One-of-a-Kind Diamond Necklace','💎']],
+  }),
+  makeCase('luxury', 'Luxury Case', 260, '🍷', {
+    common:    [['Leather Shoes','👞'], ['Silk Tie','👔'], ['Cufflinks','🎩']],
+    uncommon:  [['Wine Bottle','🍷'], ['Champagne','🥂'], ['Cologne Set','🧴']],
+    rare:      [['Yacht Model','🛥️'], ['Grand Piano','🎹'], ['Art Sculpture','🗿']],
+    epic:      [['Sports Car','🏎️'], ['Penthouse Suite','🏙️'], ['Private Chef Service','🍽️']],
+    legendary: [['Private Island Deed','🏝️'], ['Private Jet','✈️'], ['Vintage Wine Cellar','🍷']],
+    mythic:    [['Private Superyacht','🛥️'], ['Castle Estate','🏰']],
+  }),
+  makeCase('car', 'Car Case', 300, '🏎️', {
+    common:    [['Air Freshener','🌲'], ['Seat Cover','🚗'], ['Floor Mats','🚙']],
+    uncommon:  [['Alloy Wheels','⚙️'], ['Car Stereo','🔊'], ['Dash Cam','📹']],
+    rare:      [['Racing Spoiler','🏁'], ['Turbo Kit','🔧'], ['Performance Exhaust','🔥']],
+    epic:      [['Sports Car','🏎️'], ['Muscle Car','🚙'], ['Convertible','🚗']],
+    legendary: [['Supercar','🏆'], ['Golden Rims','🥇'], ['Vintage Classic Car','🚘']],
+    mythic:    [['One-of-One Hypercar','🏆'], ['Diamond-Encrusted Supercar','💎']],
+  }),
+  makeCase('vault', 'Vault Legends Case', 360, '👑', {
+    common:    [['Bronze Medal','🥉'], ['Trophy Cup','🏆'], ['Ribbon','🎗️']],
+    uncommon:  [['Silver Trophy','🥈'], ['Medal Ribbon','🎖️'], ['Championship Pin','📌']],
+    rare:      [['Gold Trophy','🥇'], ['Champion Belt','🥋'], ['Hall of Fame Plaque','🏅']],
+    epic:      [['Crown','👑'], ['Royal Scepter','🪄'], ['Legendary Relic','🗿']],
+    legendary: [['Golden Dragon','🐉'], ['Phoenix Feather','🪶'], ['Ancient Artifact','🏺']],
+    mythic:    [['Mythical Phoenix','🔥'], ["Dragon's Hoard",'🐉']],
+  }),
+];
+
+let coins = 100;
+let inventory = []; // {caseId, name, icon, rarity, value, ts}
+let caseOpening = false;
+let coinsAwardedForGame = false;
+let openPreviewCaseId = null;
+
+// Splits each rarity tier's total weight evenly across however many items
+// share that tier, so adding more items per tier doesn't change the overall
+// 60/25/10/4/1 odds — it only adds variety within each slice.
+function weightedPick(items){
+  const tierCounts = {};
+  items.forEach(it=>{ tierCounts[it.rarity] = (tierCounts[it.rarity]||0)+1; });
+  const weighted = items.map(it=> ({ it, w: RARITY_WEIGHTS[it.rarity]/tierCounts[it.rarity] }));
+  const total = weighted.reduce((s,x)=>s+x.w, 0);
+  let r = Math.random()*total;
+  for(const x of weighted){ r -= x.w; if(r<=0) return x.it; }
+  return weighted[weighted.length-1].it;
+}
+
+async function loadEconomy(){
+  const c = await cloudGet('coins', false);
+  if(c==null){ coins = 100; await cloudSet('coins', String(coins), false); }
+  else { coins = parseInt(c,10) || 0; }
+  const inv = await cloudGet('inventory', false);
+  try{ inventory = inv ? JSON.parse(inv) : []; }catch(e){ inventory = []; }
+}
+async function saveCoins(){ await cloudSet('coins', String(coins), false); }
+async function saveInventory(){ await cloudSet('inventory', JSON.stringify(inventory), false); }
+
+function addCoins(n){
+  coins += n;
+  saveCoins();
+  updateCoinBadges();
+}
+
+function updateCoinBadges(){
+  document.querySelectorAll('.coin-badge span').forEach(el=>{ el.textContent = coins; });
+}
+
+function setCasesStatus(msg){
+  const el = document.getElementById('cases-status');
+  if(el) el.textContent = msg || '';
+}
+
+function renderCasesGrid(){
+  const grid = document.getElementById('case-grid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  CASES.forEach(c=>{
+    const card = document.createElement('div');
+    card.className = 'case-card';
+    const canAfford = coins >= c.price;
+    const isOpen = openPreviewCaseId===c.id;
+    const order = ['mythic','legendary','epic','rare','uncommon','common'];
+    const grouped = order.map(rarity=>{
+      const tierItems = c.items.filter(it=>it.rarity===rarity);
+      const chancePct = (RARITY_WEIGHTS[rarity]/tierItems.length).toFixed(1).replace(/\.0$/,'');
+      const rows = tierItems.map(it=>
+        `<div class="preview-row rarity-${it.rarity}">
+           <span class="preview-icon">${it.icon}</span>
+           <span class="preview-name">${escapeHtml(it.name)}</span>
+           <span class="preview-value">🪙${it.value}</span>
+           <span class="preview-chance">${chancePct}%</span>
+         </div>`).join('');
+      return rows;
+    }).join('');
+
+    card.innerHTML = `
+      <div class="case-card-head">
+        <div class="icon">${c.icon}</div>
+        <div class="name">${escapeHtml(c.name)}</div>
+        <div class="price">🪙 ${c.price}</div>
+      </div>
+      <button class="case-open-btn" ${canAfford?'':'disabled'}>${canAfford?'Open':'Not enough'}</button>
+      <div class="case-preview" ${isOpen?'':'hidden'}>${grouped}</div>
+    `;
+    card.querySelector('.case-card-head').addEventListener('click', ()=>{
+      openPreviewCaseId = isOpen ? null : c.id;
+      renderCasesGrid();
+    });
+    card.querySelector('.case-open-btn').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      openCase(c.id);
+    });
+    grid.appendChild(card);
+  });
+}
+
+function renderInventory(){
+  const grid = document.getElementById('inventory-grid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  if(!inventory.length){
+    grid.innerHTML = '<div class="inventory-empty">No items yet — open a case to start your collection.</div>';
+    return;
+  }
+  const counts = {};
+  inventory.forEach(it=>{
+    const k = it.name+'|'+it.rarity;
+    if(!counts[k]) counts[k] = { ...it, count:0 };
+    counts[k].count++;
+  });
+  const order = ['legendary','epic','rare','uncommon','common'];
+  Object.values(counts)
+    .sort((a,b)=> order.indexOf(a.rarity)-order.indexOf(b.rarity) || a.name.localeCompare(b.name))
+    .forEach(it=>{
+      const div = document.createElement('div');
+      div.className = 'inv-item rarity-'+it.rarity;
+      div.innerHTML = `
+        <div class="icon">${it.icon}</div>
+        <div>${escapeHtml(it.name)}</div>
+        <div class="count">x${it.count}</div>
+        <div class="inv-sell-row">
+          <button class="inv-sell-btn" data-name="${escapeHtml(it.name)}" data-rarity="${it.rarity}" data-mode="one">🪙${it.value}</button>
+          ${it.count>1 ? `<button class="inv-sell-btn" data-name="${escapeHtml(it.name)}" data-rarity="${it.rarity}" data-mode="all">Sell All</button>` : ''}
+        </div>
+      `;
+      grid.appendChild(div);
+    });
+  grid.querySelectorAll('.inv-sell-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> sellItem(btn.dataset.name, btn.dataset.rarity, btn.dataset.mode));
+  });
+}
+
+function sellItem(name, rarity, mode){
+  const matches = idx => inventory[idx].name===name && inventory[idx].rarity===rarity;
+  if(mode==='all'){
+    let gained = 0;
+    inventory = inventory.filter(it=>{
+      if(it.name===name && it.rarity===rarity){ gained += it.value; return false; }
+      return true;
+    });
+    if(gained>0) addCoins(gained);
+  } else {
+    const idx = inventory.findIndex((it,i)=>matches(i));
+    if(idx===-1) return;
+    addCoins(inventory[idx].value);
+    inventory.splice(idx,1);
+  }
+  saveInventory();
+  renderInventory();
+  renderCasesGrid();
+}
+
+async function openCase(caseId){
+  if(caseOpening) return;
+  const c = CASES.find(x=>x.id===caseId);
+  if(!c) return;
+  if(coins < c.price){ setCasesStatus('Not enough coins for this case.'); return; }
+  caseOpening = true;
+  setCasesStatus('');
+  coins -= c.price;
+  saveCoins();
+  updateCoinBadges();
+  renderCasesGrid();
+
+  const won = weightedPick(c.items);
+  const total = 50;
+  const targetIndex = 44;
+  const reel = [];
+  for(let i=0;i<total;i++) reel.push(i===targetIndex ? won : weightedPick(c.items));
+
+  const track = document.getElementById('case-reel-track');
+  const viewport = document.getElementById('case-reel-viewport');
+  const area = document.getElementById('case-opening-area');
+  const resultBox = document.getElementById('case-result');
+  const titleEl = document.getElementById('case-opening-title');
+  const continueBtn = document.getElementById('btn-case-continue');
+  titleEl.textContent = `Opening ${c.name}…`;
+  continueBtn.hidden = true;
+  area.hidden = false;
+  resultBox.hidden = true;
+  track.innerHTML = '';
+  reel.forEach(it=>{
+    const box = document.createElement('div');
+    box.className = 'reel-item rarity-'+it.rarity;
+    box.innerHTML = `<div class="reel-icon">${it.icon}</div><div class="reel-name">${escapeHtml(it.name)}</div>`;
+    track.appendChild(box);
+  });
+  track.style.transition = 'none';
+  track.style.transform = 'translateX(0px)';
+  void track.offsetWidth; // force reflow so the next transform change animates
+
+  const stepW = 136;
+  const jitter = Math.random()*40-20;
+  const viewportCenter = viewport.clientWidth/2;
+  const targetX = -(targetIndex*stepW + stepW/2 - viewportCenter) + jitter;
+
+  requestAnimationFrame(()=>{
+    track.style.transition = 'transform 4.2s cubic-bezier(0.12, 0.85, 0.15, 1)';
+    track.style.transform = `translateX(${targetX}px)`;
+  });
+
+  setTimeout(()=>{
+    inventory.push({ caseId:c.id, name:won.name, icon:won.icon, rarity:won.rarity, value:won.value, ts:Date.now() });
+    saveInventory();
+    titleEl.textContent = c.name;
+    resultBox.hidden = false;
+    resultBox.className = 'case-result rarity-'+won.rarity;
+    resultBox.innerHTML = `<div class="result-icon">${won.icon}</div><div class="result-name">${escapeHtml(won.name)}</div><div class="result-rarity">${RARITY_LABEL[won.rarity]} · 🪙${won.value}</div>`;
+    continueBtn.hidden = false;
+    renderInventory();
+    renderCasesGrid();
+    caseOpening = false;
+  }, 4300);
+}
+
+function closeCaseModal(){
+  if(caseOpening) return; // don't let it be dismissed mid-spin
+  document.getElementById('case-opening-area').hidden = true;
+}
+document.getElementById('btn-case-continue').addEventListener('click', closeCaseModal);
+document.getElementById('case-opening-area').addEventListener('click', (e)=>{
+  if(e.target.id==='case-opening-area') closeCaseModal(); // backdrop click
+});
+
+document.getElementById('btn-open-cases').addEventListener('click', ()=>{
+  showScreen('screen-cases');
+  updateCoinBadges();
+  renderCasesGrid();
+  renderInventory();
+  document.getElementById('case-opening-area').hidden = true;
+});
+document.getElementById('btn-cases-back').addEventListener('click', ()=>{ showScreen('screen-menu'); });
+
 /* ===================== Core logic ===================== */
 const RANKS = ['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
 const SUITS = ['D','C','H','S'];
@@ -837,6 +1402,7 @@ function newGame(){
   isHost = false;
   mySeatIndex = 0;
   seatNames = NAMES.slice();
+  coinsAwardedForGame = false;
   stopLobbyPolling();
   stopGamePolling();
   state = freshGameState(NAMES, [false,true,true,true]);
@@ -1140,6 +1706,11 @@ function showOverlay(){
   const iWon = state.winnerId===mySeatIndex;
   title.textContent = iWon ? 'You win! 🎉' : winnerName + ' wins';
   sub.textContent = iWon ? 'You emptied your hand first.' : winnerName + ' emptied their hand first.';
+  if(iWon && !coinsAwardedForGame){
+    coinsAwardedForGame = true;
+    addCoins(WIN_COINS);
+    sub.textContent += `  +${WIN_COINS} 🪙`;
+  }
   const order = state.players.slice().sort((a,b)=>{
     if(a.id===state.winnerId) return -1;
     if(b.id===state.winnerId) return 1;
@@ -1208,8 +1779,10 @@ function inClaudeEnv(){
 }
 function hasCloudStorage(){ return true; } // window.storage in Claude, jsonblob.com everywhere else
 
-// Local, per-device values (name, client id) always use localStorage — no
-// network needed, and it works identically inside Claude or on any website.
+// Local, per-device values (name, client id, coins, inventory).
+// Inside Claude, browser localStorage silently fails in the artifact sandbox,
+// so we route these through window.storage (shared:false) there instead;
+// outside Claude, real localStorage works fine since it's just a normal page.
 function localGet(k){
   try{ return window.localStorage.getItem('bigtwo:'+k); }catch(e){ return null; }
 }
@@ -1217,30 +1790,42 @@ function localSet(k, v){
   try{ window.localStorage.setItem('bigtwo:'+k, v); return true; }catch(e){ return false; }
 }
 async function cloudGet(k, shared){
-  if(!shared) return localGet(k);
+  if(!shared){
+    if(inClaudeEnv()){
+      try{ const r = await window.storage.get(k, false); return r ? r.value : null; }
+      catch(e){ lastStorageError = (e && e.message) ? e.message : String(e); return null; }
+    }
+    return localGet(k);
+  }
   if(!inClaudeEnv()) return null; // shared non-room values aren't used outside Claude
   try{ const r = await window.storage.get(k, true); return r ? r.value : null; }
   catch(e){ lastStorageError = (e && e.message) ? e.message : String(e); return null; }
 }
 async function cloudSet(k, v, shared){
-  if(!shared) return localSet(k, v);
+  if(!shared){
+    if(inClaudeEnv()){
+      try{ const r = await window.storage.set(k, v, false); return !!r; }
+      catch(e){ lastStorageError = (e && e.message) ? e.message : String(e); return false; }
+    }
+    return localSet(k, v);
+  }
   if(!inClaudeEnv()) return false;
   try{ const r = await window.storage.set(k, v, true); return !!r; }
   catch(e){ lastStorageError = (e && e.message) ? e.message : String(e); return false; }
 }
 async function ensureClientId(){
-  let id = localGet('clientId');
+  let id = await cloudGet('clientId', false);
   if(!id){
     id = 'c'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-    localSet('clientId', id);
+    await cloudSet('clientId', id, false);
   }
   return id;
 }
 async function loadProfileName(){
-  const v = localGet('profile-name');
+  const v = await cloudGet('profile-name', false);
   return v || ('Player'+Math.floor(100+Math.random()*900));
 }
-async function saveProfileNameToStorage(name){ localSet('profile-name', name); }
+async function saveProfileNameToStorage(name){ await cloudSet('profile-name', name, false); }
 
 function genRoomCode(){
   // Only used inside Claude, where window.storage is a real key-value store.
@@ -1367,6 +1952,7 @@ function adoptRoomGame(room){
   const idx = room.seats.findIndex(s=>s && s.clientId===myClientId);
   if(idx!==-1) mySeatIndex = idx;
   state = room.game;
+  if(!state.finished) coinsAwardedForGame = false;
   lastKnownSeq = room.seq;
   selectedKeys = new Set();
 }
@@ -1602,6 +2188,8 @@ async function initApp(){
   myClientId = await ensureClientId();
   myProfileName = await loadProfileName();
   document.getElementById('profile-name-input').value = myProfileName;
+  await loadEconomy();
+  updateCoinBadges();
   const urlRoom = new URLSearchParams(location.search).get('room');
   if(urlRoom){
     document.getElementById('join-code-input').value = urlRoom;
