@@ -901,9 +901,34 @@
     <div id="account-logged-in" hidden>
       <div class="status-msg" id="account-loggedin-note" style="color:var(--gold-bright);"></div>
       <button class="ghost" id="btn-account-logout" style="width:100%;margin-top:10px;">Log Out</button>
+      <div id="owner-account-section" hidden style="margin-top:14px;padding-top:14px;border-top:1px solid var(--panel-border);">
+        <div class="status-msg" style="color:var(--gold-bright);margin-bottom:8px;">👑 Owner tools</div>
+        <button class="primary" id="btn-open-owner-panel" style="width:100%;">Create Redeem Code</button>
+      </div>
     </div>
 
     <button class="ghost" id="btn-account-close" style="width:100%;margin-top:10px;">Close</button>
+  </div>
+</div>
+
+<!-- ===== OWNER PANEL MODAL ===== -->
+<div class="case-opening-modal" id="owner-modal" hidden>
+  <div class="case-opening-card" style="max-width:380px;">
+    <div class="case-opening-title">👑 Owner Panel</div>
+    <div class="caveat" style="margin-top:4px;">Create a redeem code with a custom coin amount. Anyone who enters it gets those coins once.</div>
+    <div class="field-row" style="margin-top:10px;">
+      <input type="text" id="owner-code-input" placeholder="Code (e.g. FRIENDS50)" style="text-transform:uppercase;" maxlength="20">
+    </div>
+    <div class="field-row" style="margin-top:8px;">
+      <input type="number" id="owner-coins-input" placeholder="Coin amount" min="1" step="1">
+    </div>
+    <div class="status-msg" id="owner-status"></div>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button class="primary" id="btn-owner-create-code" style="flex:1;">Create Code</button>
+      <button class="ghost" id="btn-owner-close" style="flex:1;">Close</button>
+    </div>
+    <div class="divider">Your Codes</div>
+    <div id="owner-codes-list" class="status-msg" style="text-align:left;line-height:1.7;"></div>
   </div>
 </div>
 
@@ -1558,7 +1583,11 @@ const REDEEM_CODES = {
 async function redeemCode(rawCode){
   const code = (rawCode||'').trim().toUpperCase();
   if(!code) return { ok:false, msg:'Enter a code.' };
-  const reward = REDEEM_CODES[code];
+  let reward = REDEEM_CODES[code];
+  if(!reward){
+    const custom = await getCustomCodes();
+    if(custom) reward = custom[code];
+  }
   if(!reward) return { ok:false, msg:'That code is not valid.' };
   if(redeemedCodes.includes(code)) return { ok:false, msg:'You already redeemed this code.' };
   redeemedCodes.push(code);
@@ -1575,6 +1604,8 @@ async function redeemCode(rawCode){
    assume anyone with read access to the shared storage could see the hashes.
 */
 let loggedInUsername = null;
+let myAccountRole = 'player';
+const OWNER_USERNAME = 'delvin'; // this username always gets the owner role
 
 async function sha256Hex(str){
   const enc = new TextEncoder().encode(str);
@@ -1612,7 +1643,48 @@ async function setLoggedIn(usernameKey){
 }
 async function logOut(){
   loggedInUsername = null;
+  myAccountRole = 'player';
   await cloudSet('loggedInUsername', '', false);
+}
+
+/* ---- Owner-created redeem codes (shared, dynamic — separate from the
+   hardcoded REDEEM_CODES list below). Same storage pattern as the accounts
+   directory: one shared JSON dict of CODE -> {coins, createdBy, createdAt}. */
+async function getCustomCodes(){
+  if(inClaudeEnv()){
+    const raw = await cloudGet('custom-codes', true);
+    if(!raw) return {};
+    try{ return JSON.parse(raw); }catch(e){ return {}; }
+  }
+  if(!PUBLIC_BATTLES_ID) return null;
+  const room = await getRoom(PUBLIC_BATTLES_ID);
+  if(!room) return null;
+  return room.customCodes || {};
+}
+async function saveCustomCodes(dict){
+  if(inClaudeEnv()) return await cloudSet('custom-codes', JSON.stringify(dict), true);
+  if(!PUBLIC_BATTLES_ID) return false;
+  const room = await getRoom(PUBLIC_BATTLES_ID);
+  if(!room) return false;
+  room.customCodes = dict;
+  room.seq = (room.seq||0)+1;
+  return await setRoom(PUBLIC_BATTLES_ID, room);
+}
+
+async function createCustomCode(rawCode, rawCoins){
+  if(myAccountRole!=='owner') return { ok:false, msg:'Only the owner can create codes.' };
+  const code = (rawCode||'').trim().toUpperCase();
+  if(code.length<3 || code.length>20) return { ok:false, msg:'Code must be 3–20 characters.' };
+  const n = parseInt(rawCoins,10);
+  if(!Number.isFinite(n) || n<1) return { ok:false, msg:'Enter a valid coin amount (1 or more).' };
+  if(REDEEM_CODES[code]) return { ok:false, msg:'That code already exists.' };
+  const dict = await getCustomCodes();
+  if(dict===null) return { ok:false, msg:'Codes need the one-time Public Battles setup first — see Case Battles.' };
+  if(dict[code]) return { ok:false, msg:'That code already exists.' };
+  dict[code] = { coins:n, createdBy:loggedInUsername, createdAt:Date.now() };
+  const ok = await saveCustomCodes(dict);
+  if(!ok) return { ok:false, msg:'Could not save the code — try again.' };
+  return { ok:true, msg:`Code ${code} created — redeems for ${n} coins.` };
 }
 
 async function signUp(usernameRaw, password){
@@ -1624,13 +1696,15 @@ async function signUp(usernameRaw, password){
   if(dir===null) return { ok:false, msg:'Accounts need the one-time Public Battles setup first — see Case Battles.' };
   if(dir[key]) return { ok:false, msg:'That username is already taken.' };
   const passwordHash = await hashPassword(key, password);
+  const role = (key===OWNER_USERNAME) ? 'owner' : 'player';
   dir[key] = {
-    username, passwordHash,
+    username, passwordHash, role,
     coins, inventory, lastDailyClaim, redeemedCodes,
     createdAt: Date.now()
   };
   const ok = await saveAccountsDirectory(dir);
   if(!ok) return { ok:false, msg:'Could not create the account — try again.' };
+  myAccountRole = role;
   await setLoggedIn(key);
   return { ok:true };
 }
@@ -1649,6 +1723,13 @@ async function logIn(usernameRaw, password){
   inventory = acct.inventory ?? inventory;
   lastDailyClaim = acct.lastDailyClaim ?? lastDailyClaim;
   redeemedCodes = acct.redeemedCodes ?? redeemedCodes;
+  const role = acct.role || (key===OWNER_USERNAME ? 'owner' : 'player');
+  if(acct.role !== role){ // self-heal accounts created before roles existed (or before 'delvin' was made owner)
+    acct.role = role;
+    dir[key] = acct;
+    await saveAccountsDirectory(dir);
+  }
+  myAccountRole = role;
   await cloudSet('coins', String(coins), false);
   await cloudSet('inventory', JSON.stringify(inventory), false);
   await cloudSet('lastDailyClaim', String(lastDailyClaim), false);
@@ -1703,15 +1784,19 @@ function updateAccountUI(){
   const loggedOutEl = document.getElementById('account-logged-out');
   const loggedInEl = document.getElementById('account-logged-in');
   const fab = document.getElementById('fab-account');
+  const ownerSection = document.getElementById('owner-account-section');
   if(loggedInUsername){
     loggedOutEl.hidden = true;
     loggedInEl.hidden = false;
-    document.getElementById('account-loggedin-note').textContent = `Logged in as ${loggedInUsername} — your coins and items sync to this account.`;
+    const roleTag = myAccountRole==='owner' ? ' 👑 Owner' : '';
+    document.getElementById('account-loggedin-note').textContent = `Logged in as ${loggedInUsername}${roleTag} — your coins and items sync to this account.`;
     fab.classList.add('active');
+    if(ownerSection) ownerSection.hidden = (myAccountRole!=='owner');
   } else {
     loggedOutEl.hidden = false;
     loggedInEl.hidden = true;
     fab.classList.remove('active');
+    if(ownerSection) ownerSection.hidden = true;
     refreshAccountTabs();
   }
 }
@@ -1741,6 +1826,49 @@ document.getElementById('btn-account-submit').addEventListener('click', async ()
 document.getElementById('btn-account-logout').addEventListener('click', async ()=>{
   await logOut();
   updateAccountUI();
+});
+
+/* ---- Owner panel wiring ---- */
+async function refreshOwnerCodesList(){
+  const listEl = document.getElementById('owner-codes-list');
+  if(!listEl) return;
+  listEl.textContent = 'Loading…';
+  const dict = await getCustomCodes();
+  if(dict===null){ listEl.textContent = 'Unavailable — needs the one-time Public Battles setup (see Case Battles).'; return; }
+  const entries = Object.entries(dict);
+  if(entries.length===0){ listEl.textContent = 'No custom codes yet.'; return; }
+  listEl.innerHTML = entries
+    .sort((a,b)=> (b[1].createdAt||0) - (a[1].createdAt||0))
+    .map(([code,r])=> `<div>${escapeHtml(code)} — 🪙${escapeHtml(String(r.coins))}</div>`)
+    .join('');
+}
+document.getElementById('btn-open-owner-panel').addEventListener('click', async ()=>{
+  document.getElementById('owner-code-input').value = '';
+  document.getElementById('owner-coins-input').value = '';
+  const statusEl = document.getElementById('owner-status');
+  statusEl.textContent = '';
+  statusEl.classList.remove('error');
+  document.getElementById('owner-modal').hidden = false;
+  await refreshOwnerCodesList();
+});
+document.getElementById('btn-owner-close').addEventListener('click', ()=>{
+  document.getElementById('owner-modal').hidden = true;
+});
+document.getElementById('btn-owner-create-code').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('owner-status');
+  statusEl.classList.remove('error');
+  statusEl.textContent = 'Creating…';
+  const res = await createCustomCode(
+    document.getElementById('owner-code-input').value,
+    document.getElementById('owner-coins-input').value
+  );
+  statusEl.textContent = res.msg;
+  statusEl.classList.toggle('error', !res.ok);
+  if(res.ok){
+    document.getElementById('owner-code-input').value = '';
+    document.getElementById('owner-coins-input').value = '';
+    await refreshOwnerCodesList();
+  }
 });
 
 const BATTLE_TYPES = [
@@ -3179,6 +3307,8 @@ async function initApp(){
       inventory = acct.inventory ?? inventory;
       lastDailyClaim = acct.lastDailyClaim ?? lastDailyClaim;
       redeemedCodes = acct.redeemedCodes ?? redeemedCodes;
+      myAccountRole = acct.role || (loggedInUsername===OWNER_USERNAME ? 'owner' : 'player');
+      if(acct.role !== myAccountRole){ acct.role = myAccountRole; dir[loggedInUsername] = acct; await saveAccountsDirectory(dir); }
     } else {
       loggedInUsername = null; // account vanished or directory unreachable — fall back to local/anonymous
     }
