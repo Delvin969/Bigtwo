@@ -585,26 +585,6 @@
   }
   .battle-odds-row .pct{font-family:'JetBrains Mono',monospace;color:var(--gold-bright);}
   .battle-odds-row.winner{color:#4fae5e;font-weight:700;}
-  .battle-live-feed{margin-top:8px;display:flex;flex-direction:column;gap:4px;}
-  .battle-live-row{
-    display:flex;align-items:center;justify-content:space-between;gap:6px;
-    font-size:10.5px;padding:4px 7px;border-left:2px solid transparent;
-    background:rgba(0,0,0,0.28);border-radius:4px;
-    animation:liveReveal .5s ease;
-  }
-  @keyframes liveReveal{
-    0%{opacity:0;transform:translateY(-4px) scale(0.97);}
-    100%{opacity:1;transform:translateY(0) scale(1);}
-  }
-  .battle-live-row.rarity-common{border-color:#9aa4ad;}
-  .battle-live-row.rarity-uncommon{border-color:#4fae5e;}
-  .battle-live-row.rarity-rare{border-color:#4a90d9;}
-  .battle-live-row.rarity-epic{border-color:#a35fd6;}
-  .battle-live-row.rarity-legendary{border-color:#f3c23a;}
-  .battle-live-row.rarity-mythic{border-color:#ff3d9a;}
-  .battle-live-row .who{color:var(--cream);opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .battle-live-row .pull{color:var(--gold-bright);display:flex;align-items:center;gap:4px;white-space:nowrap;}
-  .battle-live-row .round{color:rgba(247,241,227,0.45);font-family:'JetBrains Mono',monospace;flex-shrink:0;}
   .battle-pot-items{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
   .battle-pot-item{font-size:18px;background:rgba(0,0,0,0.3);border-radius:6px;padding:4px 6px;}
   .battle-mode-badge{
@@ -2246,18 +2226,7 @@ function renderBattleList(room){
         actionHtml = `<div class="caveat">Battle is full.</div>`;
       }
     } else if(b.status==='opening'){
-      const liveEntries = b.live ? Object.entries(b.live) : [];
-      const liveHtml = liveEntries.length ? `<div class="battle-live-feed">${
-        liveEntries.map(([cid,r])=>{
-          const isMe = cid===myClientId;
-          return `<div class="battle-live-row rarity-${r.item.rarity}">
-            <span class="who">${escapeHtml(r.name)}${isMe?' (You)':''}</span>
-            <span class="pull">${r.item.icon} ${escapeHtml(r.item.name)} <span style="opacity:0.8;">🪙${r.item.value}</span></span>
-            <span class="round">R${r.round}/${r.totalRounds}</span>
-          </div>`;
-        }).join('')
-      }</div>` : '';
-      actionHtml = `<div class="caveat">⚔️ Battle in progress…</div>${liveHtml}`;
+      actionHtml = `<div class="caveat">⚔️ Battle in progress — everyone's opening their cases now…</div>`;
     } else if(b.status==='settled'){
       actionHtml = `<button class="battle-view-btn" data-id="${b.id}">View Result</button>`;
     }
@@ -2299,6 +2268,7 @@ async function joinBattle(battleId){
   const ok = await setRoom(battleRoomCode, room);
   if(!ok){ setBattleLobbyStatus('Could not join: '+(lastStorageError||''), true); return; }
   renderBattleList(room);
+  if(b.status==='opening') runMyBattleRounds(battleId); // start spinning right away instead of waiting for the next poll
 }
 
 async function forceStartBattle(battleId){
@@ -2310,6 +2280,7 @@ async function forceStartBattle(battleId){
   room.seq = (room.seq||0)+1;
   await setRoom(battleRoomCode, room);
   renderBattleList(room);
+  runMyBattleRounds(battleId); // start spinning right away instead of waiting for the next poll
 }
 
 function playBattleReel(c, roundNum, totalRounds){
@@ -2355,20 +2326,6 @@ function playBattleReel(c, roundNum, totalRounds){
   });
 }
 
-async function reportBattleLiveReveal(battleId, payload){
-  for(let attempt=0; attempt<2; attempt++){
-    const room = await getRoom(battleRoomCode);
-    if(!room) return;
-    const b = room.battles.find(x=>x.id===battleId);
-    if(!b) return;
-    b.live = b.live || {};
-    b.live[myClientId] = payload;
-    room.seq = (room.seq||0)+1;
-    const ok = await setRoom(battleRoomCode, room);
-    if(ok) return;
-  }
-}
-
 async function submitBattleResult(battleId, items, totalValue){
   for(let attempt=0; attempt<4; attempt++){
     if(attempt>0) await new Promise(r=>setTimeout(r, 500*attempt));
@@ -2402,13 +2359,7 @@ async function runMyBattleRounds(battleId){
     updateCoinBadges();
     const pulled = [];
     for(let i=0;i<b.rounds;i++){
-      const won = await playBattleReel(c, i+1, b.rounds);
-      pulled.push(won);
-      reportBattleLiveReveal(battleId, {
-        name: myProfileName, round: i+1, totalRounds: b.rounds,
-        item: { name:won.name, icon:won.icon, rarity:won.rarity, value:won.value },
-        ts: Date.now()
-      }); // fire-and-forget — a missed live update doesn't affect the actual result
+      pulled.push(await playBattleReel(c, i+1, b.rounds));
     }
     document.getElementById('case-opening-area').hidden = true;
     await submitBattleResult(battleId, pulled, pulled.reduce((s,it)=>s+it.value,0));
