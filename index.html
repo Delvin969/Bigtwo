@@ -585,6 +585,26 @@
   }
   .battle-odds-row .pct{font-family:'JetBrains Mono',monospace;color:var(--gold-bright);}
   .battle-odds-row.winner{color:#4fae5e;font-weight:700;}
+  .battle-live-feed{margin-top:8px;display:flex;flex-direction:column;gap:4px;}
+  .battle-live-row{
+    display:flex;align-items:center;justify-content:space-between;gap:6px;
+    font-size:10.5px;padding:4px 7px;border-left:2px solid transparent;
+    background:rgba(0,0,0,0.28);border-radius:4px;
+    animation:liveReveal .5s ease;
+  }
+  @keyframes liveReveal{
+    0%{opacity:0;transform:translateY(-4px) scale(0.97);}
+    100%{opacity:1;transform:translateY(0) scale(1);}
+  }
+  .battle-live-row.rarity-common{border-color:#9aa4ad;}
+  .battle-live-row.rarity-uncommon{border-color:#4fae5e;}
+  .battle-live-row.rarity-rare{border-color:#4a90d9;}
+  .battle-live-row.rarity-epic{border-color:#a35fd6;}
+  .battle-live-row.rarity-legendary{border-color:#f3c23a;}
+  .battle-live-row.rarity-mythic{border-color:#ff3d9a;}
+  .battle-live-row .who{color:var(--cream);opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .battle-live-row .pull{color:var(--gold-bright);display:flex;align-items:center;gap:4px;white-space:nowrap;}
+  .battle-live-row .round{color:rgba(247,241,227,0.45);font-family:'JetBrains Mono',monospace;flex-shrink:0;}
   .battle-pot-items{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
   .battle-pot-item{font-size:18px;background:rgba(0,0,0,0.3);border-radius:6px;padding:4px 6px;}
   .battle-mode-badge{
@@ -791,6 +811,7 @@
 <div class="screen" id="screen-menu">
   <div class="corner-fabs-left">
     <button class="corner-fab" id="fab-redeem" type="button" title="Redeem Code">🎟️</button>
+    <button class="corner-fab" id="fab-send-coins" type="button" title="Send Coins">💸</button>
   </div>
   <div class="corner-fabs">
     <button class="corner-fab" id="fab-account" type="button" title="Account">👤</button>
@@ -922,6 +943,9 @@
     <div class="field-row" style="margin-top:8px;">
       <input type="number" id="owner-coins-input" placeholder="Coin amount" min="1" step="1">
     </div>
+    <div class="field-row" style="margin-top:8px;">
+      <input type="number" id="owner-limit-input" placeholder="Redeem limit (blank = unlimited)" min="1" step="1">
+    </div>
     <div class="status-msg" id="owner-status"></div>
     <div style="display:flex; gap:8px; margin-top:10px;">
       <button class="primary" id="btn-owner-create-code" style="flex:1;">Create Code</button>
@@ -929,6 +953,25 @@
     </div>
     <div class="divider">Your Codes</div>
     <div id="owner-codes-list" class="status-msg" style="text-align:left;line-height:1.7;"></div>
+  </div>
+</div>
+
+<!-- ===== SEND COINS MODAL ===== -->
+<div class="case-opening-modal" id="send-coins-modal" hidden>
+  <div class="case-opening-card" style="max-width:360px;">
+    <div class="case-opening-title">💸 Send Coins</div>
+    <div class="caveat" style="margin-top:4px;">Send coins to another player by username. You need to be logged in, and the recipient needs an account too.</div>
+    <div class="field-row" style="margin:10px 0 6px;">
+      <input type="text" id="send-coins-username-input" placeholder="Recipient username" maxlength="16">
+    </div>
+    <div class="field-row" style="margin-top:8px;">
+      <input type="number" id="send-coins-amount-input" placeholder="Coin amount" min="1" step="1">
+    </div>
+    <div class="status-msg" id="send-coins-status"></div>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button class="primary" id="btn-send-coins-submit" style="flex:1;">Send</button>
+      <button class="ghost" id="btn-send-coins-close" style="flex:1;">Close</button>
+    </div>
   </div>
 </div>
 
@@ -1263,6 +1306,38 @@ const CASES = [
     legendary: [['Golden Dragon','🐉'], ['Phoenix Feather','🪶'], ['Ancient Artifact','🏺']],
     mythic:    [['Mythical Phoenix','🔥'], ["Dragon's Hoard",'🐉']],
   }),
+  makeCase('skyline', 'Skyline Tycoon Case', 420, '🏙️', {
+    common:    [['Office Mug','☕'], ['Business Card Holder','💳'], ['Desk Nameplate','🪧']],
+    uncommon:  [['Briefcase','💼'], ['Fountain Pen','🖋️'], ['Stock Ticker Model','📈']],
+    rare:      [['Corner Office Chair','🪑'], ['Skyscraper Model','🏢'], ['Rooftop Lounge Pass','🍸']],
+    epic:      [['Commercial Real Estate Deed','🏙️'], ['Executive Helicopter Ride','🚁'], ['Boardroom Table Set','🪑']],
+    legendary: [['Skyscraper Penthouse','🏙️'], ['Private Trading Floor','📊'], ['Golden Skyline Trophy','🥇']],
+    mythic:    [['Downtown Tower Deed','🏙️'], ['Billion-Dollar Portfolio','💹']],
+  }),
+  makeCase('galaxy', 'Galaxy Explorer Case', 480, '🪐', {
+    common:    [['Star Map','🗺️'], ['Glow Stars Set','🌟'], ['Space Keychain','🔭']],
+    uncommon:  [['Telescope','🔭'], ['Astronaut Ice Cream','🍦'], ['Meteorite Replica','☄️']],
+    rare:      [['Zero-G Flight Voucher','🛸'], ['Home Planetarium','🌌'], ['Real Meteorite Fragment','☄️']],
+    epic:      [['Space Suit Replica','👨‍🚀'], ['Satellite Naming Rights','🛰️'], ['Moon Rock Display','🌑']],
+    legendary: [['Suborbital Flight Ticket','🚀'], ['Private Observatory','🔭'], ['Named Star Certificate','⭐']],
+    mythic:    [['Seat on a Lunar Mission','🌕'], ['Private Rocket Company Stake','🚀']],
+  }),
+  makeCase('crown', 'Crown Jewels Vault Case', 560, '👑', {
+    common:    [['Costume Tiara','👸'], ['Faux Pearl String','📿'], ['Velvet Jewelry Box','💍']],
+    uncommon:  [['Silver Scepter Replica','🪄'], ['Cubic Zirconia Ring','💍'], ['Ornate Hand Mirror','🪞']],
+    rare:      [['Sapphire Tiara','💙'], ['Emerald Brooch','💚'], ['Antique Signet Ring','💍']],
+    epic:      [['Ruby Encrusted Crown','👑'], ['Royal Ceremonial Sword','⚔️'], ['Diamond Choker','💎']],
+    legendary: [['Imperial State Crown Replica','👑'], ['Coronation Robe','🧥'], ['Royal Vault Key','🗝️']],
+    mythic:    [['Original Crown Jewels Piece','👑'], ['Sovereign\u2019s Orb','🔮']],
+  }),
+  makeCase('titan', 'Titan Vault Case', 650, '⚡', {
+    common:    [['Bronze Titan Figurine','🗿'], ['Vault Access Badge','🪪'], ['Steel Keychain','🔑']],
+    uncommon:  [['Reinforced Vault Box','🔒'], ['Titanium Flask','🧴'], ['Signal Jammer Toy','📡']],
+    rare:      [['Armored Briefcase','🧳'], ['Titan-Grade Watch','⌚'], ['Vault Blueprint','🗺️']],
+    epic:      [['Private Vault Membership','🏦'], ['Armored Convoy Escort','🚚'], ['Bullion Bar Set','🥇']],
+    legendary: [['Underground Vault Deed','🏦'], ['Titan Exosuit Prototype','🤖'], ['Sealed Time Capsule','⏳']],
+    mythic:    [['The Titan Vault Itself','🏦'], ['Unclaimed Bullion Reserve','🥇']],
+  }),
 ];
 
 let coins = 100;
@@ -1584,15 +1659,23 @@ async function redeemCode(rawCode){
   const code = (rawCode||'').trim().toUpperCase();
   if(!code) return { ok:false, msg:'Enter a code.' };
   let reward = REDEEM_CODES[code];
+  let customDict = null;
   if(!reward){
-    const custom = await getCustomCodes();
-    if(custom) reward = custom[code];
+    customDict = await getCustomCodes();
+    if(customDict) reward = customDict[code];
   }
   if(!reward) return { ok:false, msg:'That code is not valid.' };
+  if(customDict && reward.limit!=null && (reward.redeemedCount||0)>=reward.limit){
+    return { ok:false, msg:'This code has reached its redemption limit.' };
+  }
   if(redeemedCodes.includes(code)) return { ok:false, msg:'You already redeemed this code.' };
   redeemedCodes.push(code);
   await saveRedeemedCodes();
   if(reward.coins) addCoins(reward.coins);
+  if(customDict){
+    customDict[code].redeemedCount = (customDict[code].redeemedCount||0)+1;
+    await saveCustomCodes(customDict);
+  }
   return { ok:true, msg:`Redeemed! +${reward.coins} coins` };
 }
 
@@ -1671,20 +1754,41 @@ async function saveCustomCodes(dict){
   return await setRoom(PUBLIC_BATTLES_ID, room);
 }
 
-async function createCustomCode(rawCode, rawCoins){
+async function createCustomCode(rawCode, rawCoins, rawLimit){
   if(myAccountRole!=='owner') return { ok:false, msg:'Only the owner can create codes.' };
   const code = (rawCode||'').trim().toUpperCase();
   if(code.length<3 || code.length>20) return { ok:false, msg:'Code must be 3–20 characters.' };
   const n = parseInt(rawCoins,10);
   if(!Number.isFinite(n) || n<1) return { ok:false, msg:'Enter a valid coin amount (1 or more).' };
+  let limit = null;
+  if(rawLimit!==undefined && rawLimit!==null && String(rawLimit).trim()!==''){
+    limit = parseInt(rawLimit,10);
+    if(!Number.isFinite(limit) || limit<1) return { ok:false, msg:'Redeem limit must be 1 or more (leave blank for unlimited).' };
+  }
   if(REDEEM_CODES[code]) return { ok:false, msg:'That code already exists.' };
   const dict = await getCustomCodes();
   if(dict===null) return { ok:false, msg:'Codes need the one-time Public Battles setup first — see Case Battles.' };
   if(dict[code]) return { ok:false, msg:'That code already exists.' };
-  dict[code] = { coins:n, createdBy:loggedInUsername, createdAt:Date.now() };
+  dict[code] = { coins:n, limit, redeemedCount:0, createdBy:loggedInUsername, createdAt:Date.now() };
   const ok = await saveCustomCodes(dict);
   if(!ok) return { ok:false, msg:'Could not save the code — try again.' };
-  return { ok:true, msg:`Code ${code} created — redeems for ${n} coins.` };
+  return { ok:true, msg:`Code ${code} created — 🪙${n}${limit!=null ? `, limit ${limit} redemptions` : ', unlimited redemptions'}.` };
+}
+
+async function deleteCustomCode(rawCode){
+  if(myAccountRole!=='owner') return { ok:false, msg:'Only the owner can delete codes.' };
+  const code = (rawCode||'').trim().toUpperCase();
+  const dict = await getCustomCodes();
+  if(dict===null) return { ok:false, msg:'Unavailable right now — try again.' };
+  const entry = dict[code];
+  if(!entry) return { ok:false, msg:'That code no longer exists.' };
+  if(entry.createdBy && entry.createdBy!==loggedInUsername){
+    return { ok:false, msg:'You can only delete codes you created.' };
+  }
+  delete dict[code];
+  const ok = await saveCustomCodes(dict);
+  if(!ok) return { ok:false, msg:'Could not delete the code — try again.' };
+  return { ok:true, msg:`Deleted ${code}.` };
 }
 
 async function signUp(usernameRaw, password){
@@ -1750,6 +1854,38 @@ async function syncAccountIfLoggedIn(){
   dir[loggedInUsername].lastDailyClaim = lastDailyClaim;
   dir[loggedInUsername].redeemedCodes = redeemedCodes;
   await saveAccountsDirectory(dir);
+}
+
+/* ---- Send coins to another player, by username ---- */
+async function sendCoins(targetUsernameRaw, rawAmount){
+  if(!loggedInUsername) return { ok:false, msg:'Log in to an account first to send coins.' };
+  const targetUsername = (targetUsernameRaw||'').trim();
+  if(!targetUsername) return { ok:false, msg:'Enter a username.' };
+  const targetKey = targetUsername.toLowerCase();
+  if(targetKey===loggedInUsername) return { ok:false, msg:"You can't send coins to yourself." };
+  const n = parseInt(rawAmount,10);
+  if(!Number.isFinite(n) || n<1) return { ok:false, msg:'Enter a valid coin amount (1 or more).' };
+  if(coins < n) return { ok:false, msg:'Not enough coins.' };
+  const dir = await getAccountsDirectory();
+  if(dir===null) return { ok:false, msg:'Sending coins needs the one-time Public Battles setup first — see Case Battles.' };
+  const targetAcct = dir[targetKey];
+  if(!targetAcct) return { ok:false, msg:`No account with username "${targetUsername}" — coins were not sent.` };
+  const senderAcct = dir[loggedInUsername];
+  if(!senderAcct) return { ok:false, msg:'Your account could not be found — try logging out and back in.' };
+
+  const newSenderCoins = coins - n;
+  senderAcct.coins = newSenderCoins;
+  targetAcct.coins = (targetAcct.coins||0) + n;
+  dir[loggedInUsername] = senderAcct;
+  dir[targetKey] = targetAcct;
+
+  const ok = await saveAccountsDirectory(dir);
+  if(!ok) return { ok:false, msg:'Could not send coins — try again.' };
+
+  coins = newSenderCoins;
+  await cloudSet('coins', String(coins), false); // personal key stays in sync without a redundant directory round-trip
+  updateCoinBadges();
+  return { ok:true, msg:`Sent 🪙${n} to ${targetAcct.username}.` };
 }
 
 /* ---- Redeem modal wiring ---- */
@@ -1837,14 +1973,35 @@ async function refreshOwnerCodesList(){
   if(dict===null){ listEl.textContent = 'Unavailable — needs the one-time Public Battles setup (see Case Battles).'; return; }
   const entries = Object.entries(dict);
   if(entries.length===0){ listEl.textContent = 'No custom codes yet.'; return; }
-  listEl.innerHTML = entries
+  listEl.innerHTML = '';
+  entries
     .sort((a,b)=> (b[1].createdAt||0) - (a[1].createdAt||0))
-    .map(([code,r])=> `<div>${escapeHtml(code)} — 🪙${escapeHtml(String(r.coins))}</div>`)
-    .join('');
+    .forEach(([code,r])=>{
+      const usage = r.limit!=null ? `${r.redeemedCount||0}/${r.limit}` : `${r.redeemedCount||0}/∞`;
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 0;';
+      row.innerHTML = `<span>${escapeHtml(code)} — 🪙${escapeHtml(String(r.coins))} · ${usage}</span>`;
+      const delBtn = document.createElement('button');
+      delBtn.className = 'ghost';
+      delBtn.style.cssText = 'padding:2px 8px;font-size:11px;flex-shrink:0;';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', async ()=>{
+        const statusEl = document.getElementById('owner-status');
+        statusEl.classList.remove('error');
+        statusEl.textContent = 'Deleting…';
+        const res = await deleteCustomCode(code);
+        statusEl.textContent = res.msg;
+        statusEl.classList.toggle('error', !res.ok);
+        if(res.ok) await refreshOwnerCodesList();
+      });
+      row.appendChild(delBtn);
+      listEl.appendChild(row);
+    });
 }
 document.getElementById('btn-open-owner-panel').addEventListener('click', async ()=>{
   document.getElementById('owner-code-input').value = '';
   document.getElementById('owner-coins-input').value = '';
+  document.getElementById('owner-limit-input').value = '';
   const statusEl = document.getElementById('owner-status');
   statusEl.textContent = '';
   statusEl.classList.remove('error');
@@ -1860,14 +2017,44 @@ document.getElementById('btn-owner-create-code').addEventListener('click', async
   statusEl.textContent = 'Creating…';
   const res = await createCustomCode(
     document.getElementById('owner-code-input').value,
-    document.getElementById('owner-coins-input').value
+    document.getElementById('owner-coins-input').value,
+    document.getElementById('owner-limit-input').value
   );
   statusEl.textContent = res.msg;
   statusEl.classList.toggle('error', !res.ok);
   if(res.ok){
     document.getElementById('owner-code-input').value = '';
     document.getElementById('owner-coins-input').value = '';
+    document.getElementById('owner-limit-input').value = '';
     await refreshOwnerCodesList();
+  }
+});
+
+/* ---- Send coins wiring ---- */
+document.getElementById('fab-send-coins').addEventListener('click', ()=>{
+  document.getElementById('send-coins-username-input').value = '';
+  document.getElementById('send-coins-amount-input').value = '';
+  const statusEl = document.getElementById('send-coins-status');
+  statusEl.textContent = '';
+  statusEl.classList.remove('error');
+  document.getElementById('send-coins-modal').hidden = false;
+});
+document.getElementById('btn-send-coins-close').addEventListener('click', ()=>{
+  document.getElementById('send-coins-modal').hidden = true;
+});
+document.getElementById('btn-send-coins-submit').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('send-coins-status');
+  statusEl.classList.remove('error');
+  statusEl.textContent = 'Sending…';
+  const res = await sendCoins(
+    document.getElementById('send-coins-username-input').value,
+    document.getElementById('send-coins-amount-input').value
+  );
+  statusEl.textContent = res.msg;
+  statusEl.classList.toggle('error', !res.ok);
+  if(res.ok){
+    document.getElementById('send-coins-username-input').value = '';
+    document.getElementById('send-coins-amount-input').value = '';
   }
 });
 
@@ -2059,7 +2246,18 @@ function renderBattleList(room){
         actionHtml = `<div class="caveat">Battle is full.</div>`;
       }
     } else if(b.status==='opening'){
-      actionHtml = `<div class="caveat">⚔️ Battle in progress…</div>`;
+      const liveEntries = b.live ? Object.entries(b.live) : [];
+      const liveHtml = liveEntries.length ? `<div class="battle-live-feed">${
+        liveEntries.map(([cid,r])=>{
+          const isMe = cid===myClientId;
+          return `<div class="battle-live-row rarity-${r.item.rarity}">
+            <span class="who">${escapeHtml(r.name)}${isMe?' (You)':''}</span>
+            <span class="pull">${r.item.icon} ${escapeHtml(r.item.name)} <span style="opacity:0.8;">🪙${r.item.value}</span></span>
+            <span class="round">R${r.round}/${r.totalRounds}</span>
+          </div>`;
+        }).join('')
+      }</div>` : '';
+      actionHtml = `<div class="caveat">⚔️ Battle in progress…</div>${liveHtml}`;
     } else if(b.status==='settled'){
       actionHtml = `<button class="battle-view-btn" data-id="${b.id}">View Result</button>`;
     }
@@ -2157,6 +2355,20 @@ function playBattleReel(c, roundNum, totalRounds){
   });
 }
 
+async function reportBattleLiveReveal(battleId, payload){
+  for(let attempt=0; attempt<2; attempt++){
+    const room = await getRoom(battleRoomCode);
+    if(!room) return;
+    const b = room.battles.find(x=>x.id===battleId);
+    if(!b) return;
+    b.live = b.live || {};
+    b.live[myClientId] = payload;
+    room.seq = (room.seq||0)+1;
+    const ok = await setRoom(battleRoomCode, room);
+    if(ok) return;
+  }
+}
+
 async function submitBattleResult(battleId, items, totalValue){
   for(let attempt=0; attempt<4; attempt++){
     if(attempt>0) await new Promise(r=>setTimeout(r, 500*attempt));
@@ -2190,7 +2402,13 @@ async function runMyBattleRounds(battleId){
     updateCoinBadges();
     const pulled = [];
     for(let i=0;i<b.rounds;i++){
-      pulled.push(await playBattleReel(c, i+1, b.rounds));
+      const won = await playBattleReel(c, i+1, b.rounds);
+      pulled.push(won);
+      reportBattleLiveReveal(battleId, {
+        name: myProfileName, round: i+1, totalRounds: b.rounds,
+        item: { name:won.name, icon:won.icon, rarity:won.rarity, value:won.value },
+        ts: Date.now()
+      }); // fire-and-forget — a missed live update doesn't affect the actual result
     }
     document.getElementById('case-opening-area').hidden = true;
     await submitBattleResult(battleId, pulled, pulled.reduce((s,it)=>s+it.value,0));
