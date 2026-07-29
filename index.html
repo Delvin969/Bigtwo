@@ -1757,16 +1757,22 @@ async function getAccountsDirectory(){
     if(!raw) return {};
     try{ return JSON.parse(raw); }catch(e){ return {}; }
   }
-  if(!PUBLIC_BATTLES_ID) return null; // signals "needs the one-time Public Battles setup"
+  if(!PUBLIC_BATTLES_ID){ lastStorageError = 'Public Battles has not been set up yet on this copy of the file.'; return null; }
   const room = await getRoom(PUBLIC_BATTLES_ID);
-  if(!room) return null;
+  if(!room){
+    if(!lastStorageError) lastStorageError = `The Public Battles backend (ID ${PUBLIC_BATTLES_ID}) could not be found — it may have expired on jsonblob.com. Set it up again from Case Battles.`;
+    return null;
+  }
   return room.accounts || {};
 }
 async function saveAccountsDirectory(dir){
   if(inClaudeEnv()) return await cloudSet('accounts-directory', JSON.stringify(dir), true);
-  if(!PUBLIC_BATTLES_ID) return false;
+  if(!PUBLIC_BATTLES_ID){ lastStorageError = 'Public Battles has not been set up yet on this copy of the file.'; return false; }
   const room = await getRoom(PUBLIC_BATTLES_ID);
-  if(!room) return false;
+  if(!room){
+    if(!lastStorageError) lastStorageError = `The Public Battles backend (ID ${PUBLIC_BATTLES_ID}) could not be found — it may have expired on jsonblob.com. Set it up again from Case Battles.`;
+    return false;
+  }
   room.accounts = dir;
   room.seq = (room.seq||0)+1;
   return await setRoom(PUBLIC_BATTLES_ID, room);
@@ -1791,16 +1797,22 @@ async function getCustomCodes(){
     if(!raw) return {};
     try{ return JSON.parse(raw); }catch(e){ return {}; }
   }
-  if(!PUBLIC_BATTLES_ID) return null;
+  if(!PUBLIC_BATTLES_ID){ lastStorageError = 'Public Battles has not been set up yet on this copy of the file.'; return null; }
   const room = await getRoom(PUBLIC_BATTLES_ID);
-  if(!room) return null;
+  if(!room){
+    if(!lastStorageError) lastStorageError = `The Public Battles backend (ID ${PUBLIC_BATTLES_ID}) could not be found — it may have expired on jsonblob.com. Set it up again from Case Battles.`;
+    return null;
+  }
   return room.customCodes || {};
 }
 async function saveCustomCodes(dict){
   if(inClaudeEnv()) return await cloudSet('custom-codes', JSON.stringify(dict), true);
-  if(!PUBLIC_BATTLES_ID) return false;
+  if(!PUBLIC_BATTLES_ID){ lastStorageError = 'Public Battles has not been set up yet on this copy of the file.'; return false; }
   const room = await getRoom(PUBLIC_BATTLES_ID);
-  if(!room) return false;
+  if(!room){
+    if(!lastStorageError) lastStorageError = `The Public Battles backend (ID ${PUBLIC_BATTLES_ID}) could not be found — it may have expired on jsonblob.com. Set it up again from Case Battles.`;
+    return false;
+  }
   room.customCodes = dict;
   room.seq = (room.seq||0)+1;
   return await setRoom(PUBLIC_BATTLES_ID, room);
@@ -1819,7 +1831,7 @@ async function createCustomCode(rawCode, rawCoins, rawLimit){
   }
   if(REDEEM_CODES[code]) return { ok:false, msg:'That code already exists.' };
   const dict = await getCustomCodes();
-  if(dict===null) return { ok:false, msg:'Codes need the one-time Public Battles setup first — see Case Battles.' };
+  if(dict===null) return { ok:false, msg: lastStorageError || 'Codes need the one-time Public Battles setup first — see Case Battles.' };
   if(dict[code]) return { ok:false, msg:'That code already exists.' };
   dict[code] = { coins:n, limit, redeemedCount:0, createdBy:loggedInUsername, createdAt:Date.now() };
   const ok = await saveCustomCodes(dict);
@@ -1831,7 +1843,7 @@ async function deleteCustomCode(rawCode){
   if(myAccountRole!=='owner') return { ok:false, msg:'Only the owner can delete codes.' };
   const code = (rawCode||'').trim().toUpperCase();
   const dict = await getCustomCodes();
-  if(dict===null) return { ok:false, msg:'Unavailable right now — try again.' };
+  if(dict===null) return { ok:false, msg: lastStorageError || 'Unavailable right now — try again.' };
   const entry = dict[code];
   if(!entry) return { ok:false, msg:'That code no longer exists.' };
   if(entry.createdBy && entry.createdBy!==loggedInUsername){
@@ -1849,7 +1861,7 @@ async function signUp(usernameRaw, password){
   if(!password || password.length<4) return { ok:false, msg:'Password must be at least 4 characters.' };
   const key = username.toLowerCase();
   const dir = await getAccountsDirectory();
-  if(dir===null) return { ok:false, msg:'Accounts need the one-time Public Battles setup first — see Case Battles.' };
+  if(dir===null) return { ok:false, msg: lastStorageError || 'Accounts need the one-time Public Battles setup first — see Case Battles.' };
   if(dir[key]) return { ok:false, msg:'That username is already taken.' };
   const passwordHash = await hashPassword(key, password);
   const role = (key===OWNER_USERNAME) ? 'owner' : 'player';
@@ -1870,7 +1882,7 @@ async function logIn(usernameRaw, password){
   if(!username || !password) return { ok:false, msg:'Enter a username and password.' };
   const key = username.toLowerCase();
   const dir = await getAccountsDirectory();
-  if(dir===null) return { ok:false, msg:'Accounts need the one-time Public Battles setup first — see Case Battles.' };
+  if(dir===null) return { ok:false, msg: lastStorageError || 'Accounts need the one-time Public Battles setup first — see Case Battles.' };
   const acct = dir[key];
   if(!acct) return { ok:false, msg:'No account with that username.' };
   const passwordHash = await hashPassword(key, password);
