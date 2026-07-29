@@ -1673,7 +1673,7 @@ let selectedBattleType = null;
 // One shared room ID for the "Public Battles" button — every visitor joins the
 // same battle list with no code needed. Created once via the "Set Up Public
 // Battles" button on the entry screen; paste the resulting ID here and re-upload.
-const PUBLIC_BATTLES_ID = '019fac89-6234-7654-aa0f-281706bd641a';
+const PUBLIC_BATTLES_ID = '019fa216-b48c-7db0-9842-2ca852b2a966';
 
 document.getElementById('btn-join-public-battles').addEventListener('click', async ()=>{
   if(!PUBLIC_BATTLES_ID){
@@ -2018,7 +2018,13 @@ document.getElementById('btn-account-submit').addEventListener('click', async ()
   const p = document.getElementById('account-password-input').value;
   statusEl.classList.remove('error');
   statusEl.textContent = accountFormMode==='login' ? 'Logging in…' : 'Creating account…';
-  const res = accountFormMode==='login' ? await logIn(u,p) : await signUp(u,p);
+  globalRetryHook = (attempt, max)=>{ statusEl.textContent = `Rate limited — retrying… (${attempt}/${max})`; };
+  let res;
+  try{
+    res = accountFormMode==='login' ? await logIn(u,p) : await signUp(u,p);
+  } finally {
+    globalRetryHook = null;
+  }
   if(!res.ok){ statusEl.textContent = res.msg; statusEl.classList.add('error'); return; }
   statusEl.textContent = '';
   updateAccountUI();
@@ -3169,20 +3175,28 @@ function genRoomCode(){
 // with jitter, since jsonblob's free anonymous tier is capped at 60 req/min
 // per IP and a single slow moment (several people testing at once, a burst
 // of clicks) can trip that. Other failures are returned as-is immediately.
+let globalRetryHook = null; // optional (attempt, max) => void, set temporarily by callers that want live retry feedback
 async function fetchWithBackoff(url, options){
-  const maxAttempts = 4;
+  const maxAttempts = 6;
+  const maxWaitMs = 4000;
   for(let attempt=0; attempt<maxAttempts; attempt++){
     let res;
     try{ res = await fetch(url, options); }
     catch(e){ if(attempt===maxAttempts-1) throw e; res=null; }
     if(res && res.status!==429) return res;
     if(attempt<maxAttempts-1){
-      const wait = 500*Math.pow(2,attempt) + Math.random()*300;
+      const wait = Math.min(600*Math.pow(2,attempt), maxWaitMs) + Math.random()*300;
+      if(globalRetryHook) globalRetryHook(attempt+1, maxAttempts);
       await new Promise(r=>setTimeout(r, wait));
     } else if(res){
       return res; // out of retries, hand back the last (429) response
     }
   }
+}
+
+function friendlyHttpError(action, status){
+  if(status===429) return `Servers are busy right now (rate limited) — this usually clears up within a minute. Please wait a bit and try again.`;
+  return `jsonblob.com ${action} failed: HTTP ${status}`;
 }
 
 // Create a brand-new room. Returns the room code (and mutates roomObj.code
@@ -3199,7 +3213,7 @@ async function createRoom(roomObj){
     const res = await fetchWithBackoff('https://jsonblob.com/api/jsonBlob', {
       method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(roomObj)
     });
-    if(!res.ok){ lastStorageError = 'jsonblob.com create failed: HTTP '+res.status; return null; }
+    if(!res.ok){ lastStorageError = friendlyHttpError('create', res.status); return null; }
     const loc = res.headers.get('Location') || res.headers.get('location');
     if(!loc){ lastStorageError = 'jsonblob.com did not return a blob location'; return null; }
     const code = loc.split('/').pop();
@@ -3218,7 +3232,7 @@ async function getRoom(code){
   try{
     const res = await fetchWithBackoff(`https://jsonblob.com/api/jsonBlob/${encodeURIComponent(code)}`);
     if(res.status===404) return null;
-    if(!res.ok){ lastStorageError = 'jsonblob.com read failed: HTTP '+res.status; return null; }
+    if(!res.ok){ lastStorageError = friendlyHttpError('read', res.status); return null; }
     return await res.json();
   }catch(e){ lastStorageError = (e && e.message) ? e.message : String(e); return null; }
 }
@@ -3229,7 +3243,7 @@ async function setRoom(code, obj){
     const res = await fetchWithBackoff(`https://jsonblob.com/api/jsonBlob/${encodeURIComponent(code)}`, {
       method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(obj)
     });
-    if(!res.ok){ lastStorageError = 'jsonblob.com write failed: HTTP '+res.status; return false; }
+    if(!res.ok){ lastStorageError = friendlyHttpError('write', res.status); return false; }
     return true;
   }catch(e){ lastStorageError = (e && e.message) ? e.message : String(e); return false; }
 }
