@@ -585,6 +585,24 @@
   }
   .battle-odds-row .pct{font-family:'JetBrains Mono',monospace;color:var(--gold-bright);}
   .battle-odds-row.winner{color:#4fae5e;font-weight:700;}
+
+  /* ===== Blackjack ===== */
+  .chip-btn{
+    background:radial-gradient(circle at 35% 30%,#3a2a12,#1c1408 70%);
+    border:2px dashed var(--gold); color:var(--gold-bright); border-radius:50%;
+    width:56px;height:56px;font-weight:700;font-size:12px;cursor:pointer;
+  }
+  .chip-btn:hover{border-style:solid;}
+  .bj-hand{display:flex;gap:6px;flex-wrap:wrap;min-height:64px;align-items:center;}
+  .bj-player-panel{
+    background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:10px;
+    padding:10px 12px;
+  }
+  .bj-player-panel.active-turn{border-color:var(--gold-bright); box-shadow:0 0 10px rgba(243,221,143,0.4);}
+  .bj-player-head{display:flex;align-items:center;justify-content:space-between;font-size:13px;}
+  .bj-player-head .status-tag{font-size:10.5px;padding:2px 7px;border-radius:8px;background:rgba(0,0,0,0.35);color:var(--gold-bright);}
+  .bj-player-head .status-tag.win{color:#4fae5e;}
+  .bj-player-head .status-tag.lose{color:var(--red);}
   .battle-pot-items{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
   .battle-pot-item{font-size:18px;background:rgba(0,0,0,0.3);border-radius:6px;padding:4px 6px;}
   .battle-mode-badge{
@@ -809,6 +827,7 @@
     <div class="coin-badge" id="coin-badge-menu">🪙 <span>0</span></div>
 
     <button class="primary" id="btn-play-bots" style="padding:14px;">Play vs 3 Bots (offline)</button>
+    <button id="btn-play-blackjack-bots" style="padding:12px;">♠️ Blackjack vs Bots (offline)</button>
     <button id="btn-open-cases" style="padding:12px;">🎁 Case Opening</button>
     <button id="btn-open-battles" style="padding:12px;">⚔️ Case Battles</button>
 
@@ -1043,6 +1062,7 @@
 <div class="screen" id="screen-lobby">
   <div class="center-col">
     <div class="room-code-display" id="lobby-code">----</div>
+    <div class="status-msg" id="lobby-gametype" style="color:var(--gold-bright);"></div>
     <button class="ghost" id="btn-copy-invite" type="button">Copy Invite Link</button>
     <div class="panel">
       <h3 style="cursor:default;">Players</h3>
@@ -1140,6 +1160,58 @@
   </div>
 </div>
 
+<!-- ===== GAME TYPE CHOICE MODAL ===== -->
+<div class="case-opening-modal" id="game-type-modal" hidden>
+  <div class="case-opening-card" style="max-width:380px;">
+    <div class="case-opening-title">Choose a Game</div>
+    <div class="caveat" style="margin-top:4px;">What do you want to play in this room?</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px;">
+      <button class="primary" id="btn-choose-bigtwo" style="padding:14px;text-align:left;">🃏 Big Two<br><span style="opacity:.7;font-weight:400;font-size:11px;">4 players, lowest to highest, 3 to 2</span></button>
+      <button class="primary" id="btn-choose-blackjack" style="padding:14px;text-align:left;">♠️ Blackjack<br><span style="opacity:.7;font-weight:400;font-size:11px;">Up to 4 players, each against the dealer</span></button>
+    </div>
+    <button class="ghost" id="btn-game-type-close" style="width:100%;margin-top:14px;">Cancel</button>
+  </div>
+</div>
+
+<!-- ===== BLACKJACK SCREEN ===== -->
+<div class="screen" id="screen-blackjack">
+  <div class="corner-fabs-left">
+    <button class="corner-fab" id="fab-bj-menu" type="button" title="Back to Menu">🏠</button>
+  </div>
+  <div class="online-bar" id="bj-online-bar" hidden>
+    Room <span class="code" id="bj-online-bar-code"></span>
+    <button class="ghost" id="btn-bj-leave-table">Leave Table</button>
+  </div>
+  <div class="center-col" style="max-width:640px;">
+    <div class="coin-badge" id="coin-badge-bj">🪙 <span>0</span></div>
+
+    <div class="panel" style="width:100%;">
+      <h3 style="cursor:default;">Dealer <span id="bj-dealer-total" style="float:right;color:var(--gold-bright);"></span></h3>
+      <div id="bj-dealer-hand" class="bj-hand"></div>
+    </div>
+
+    <div id="bj-players-wrap" style="width:100%;display:flex;flex-direction:column;gap:8px;"></div>
+
+    <div class="panel" id="bj-bet-panel" style="width:100%;" hidden>
+      <h3 style="cursor:default;">Place Your Bet</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="chip-btn" data-amt="10">🪙10</button>
+        <button class="chip-btn" data-amt="25">🪙25</button>
+        <button class="chip-btn" data-amt="50">🪙50</button>
+        <button class="chip-btn" data-amt="100">🪙100</button>
+        <button class="chip-btn" data-amt="250">🪙250</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;width:100%;">
+      <button class="primary" id="btn-bj-hit" style="flex:1;" hidden>Hit</button>
+      <button id="btn-bj-stand" style="flex:1;" hidden>Stand</button>
+      <button id="btn-bj-double" style="flex:1;" hidden>Double</button>
+    </div>
+    <button class="primary" id="btn-bj-next-round" style="width:100%;" hidden>Next Round</button>
+    <div class="status-msg" id="bj-status"></div>
+  </div>
+</div>
 
 <script>
 /* ===================== Case Opening (cosmetic economy) ===================== */
@@ -3198,6 +3270,7 @@ function enterLobby(room){
   const codeEl = document.getElementById('lobby-code');
   codeEl.textContent = room.code;
   codeEl.classList.toggle('long-code', room.code.length>8);
+  document.getElementById('lobby-gametype').textContent = room.gameType==='blackjack' ? '♠️ Blackjack' : '🃏 Big Two';
   renderLobby(room);
   startLobbyPolling();
 }
@@ -3227,6 +3300,7 @@ function adoptRoomGame(room){
 }
 
 function enterGameScreen(room){
+  if(room.gameType==='blackjack'){ enterBlackjackScreen(room); return; }
   stopLobbyPolling();
   adoptRoomGame(room);
   showScreen('screen-game');
@@ -3323,6 +3397,454 @@ async function hostStartNewRound(){
   enterGameScreen(room);
 }
 
+/* ===================== Blackjack ===================== */
+let bjState = null;
+let bjLastKnownSeq = -1;
+let bjPollTimer = null;
+let bjHostBusy = false;
+
+function shuffledDeck(){
+  const d = buildDeck();
+  for(let i=d.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [d[i],d[j]]=[d[j],d[i]]; }
+  return d;
+}
+function cardBjValue(c){
+  const r = RANKS[c.r];
+  if(r==='A') return 11;
+  if(r==='10'||r==='J'||r==='Q'||r==='K') return 10;
+  return parseInt(r,10);
+}
+function bjHandTotal(hand){
+  let total = hand.reduce((s,c)=>s+cardBjValue(c),0);
+  let aces = hand.filter(c=>RANKS[c.r]==='A').length;
+  while(total>21 && aces>0){ total-=10; aces--; }
+  return total;
+}
+function isBjBlackjack(hand){ return hand.length===2 && bjHandTotal(hand)===21; }
+
+function freshBlackjackState(names, botFlags){
+  return {
+    kind:'blackjack',
+    gid: 'bj'+Math.random().toString(36).slice(2,9),
+    deck: shuffledDeck(),
+    dealer: { hand: [], revealed:false },
+    players: names.map((n,i)=>({ name:n, isBot:!!botFlags[i], hand:[], bet:0, status:'betting' })),
+    phase:'betting', // betting -> playing -> dealer -> payout
+    turnIndex:0,
+    round:1,
+  };
+}
+
+function dealBlackjackRound(bj){
+  if(bj.deck.length < 20) bj.deck = shuffledDeck();
+  bj.dealer.hand = [bj.deck.pop(), bj.deck.pop()];
+  bj.dealer.revealed = false;
+  bj.players.forEach(p=>{
+    p.hand = [bj.deck.pop(), bj.deck.pop()];
+    p.status = isBjBlackjack(p.hand) ? 'blackjack' : 'playing';
+  });
+  bj.phase = 'playing';
+  let i=0;
+  while(i<bj.players.length && bj.players[i].status!=='playing') i++;
+  if(i<bj.players.length) bj.turnIndex = i; else bj.phase='dealer';
+}
+function bjAdvanceTurn(bj){
+  let i = bj.turnIndex+1;
+  while(i<bj.players.length && bj.players[i].status!=='playing') i++;
+  if(i<bj.players.length) bj.turnIndex = i; else bj.phase='dealer';
+}
+// Performs exactly one atomic auto-step (a bot's bet, dealing the round, a
+// bot's turn, or one dealer draw). Returns false when nothing to auto-advance
+// (i.e. it's waiting on a human) so callers know when to stop/pace themselves.
+function bjAutoStep(bj){
+  if(bj.phase==='betting'){
+    const botIdx = bj.players.findIndex(p=>p.isBot && p.status==='betting');
+    if(botIdx!==-1){
+      bj.players[botIdx].bet = [10,25,50,50,100][Math.floor(Math.random()*5)];
+      bj.players[botIdx].status = 'placed';
+      return true;
+    }
+    if(bj.players.every(p=>p.status==='placed')){ dealBlackjackRound(bj); return true; }
+    return false;
+  }
+  if(bj.phase==='playing'){
+    const p = bj.players[bj.turnIndex];
+    if(!p) return false;
+    if(p.status!=='playing'){ bjAdvanceTurn(bj); return true; }
+    if(!p.isBot) return false;
+    let total = bjHandTotal(p.hand);
+    if(total<17){
+      p.hand.push(bj.deck.pop());
+      total = bjHandTotal(p.hand);
+      if(total>21) p.status='bust';
+    } else {
+      p.status='stand';
+    }
+    if(p.status!=='playing') bjAdvanceTurn(bj);
+    return true;
+  }
+  if(bj.phase==='dealer'){
+    const anyoneStillIn = bj.players.some(p=>p.status==='stand'||p.status==='blackjack'||p.status==='doubled');
+    if(!anyoneStillIn){ bj.phase='payout'; return true; }
+    if(!bj.dealer.revealed){ bj.dealer.revealed = true; return true; }
+    if(bjHandTotal(bj.dealer.hand) < 17){ bj.dealer.hand.push(bj.deck.pop()); return true; }
+    bj.phase='payout';
+    return true;
+  }
+  return false;
+}
+
+// Coins to credit back to a player once the round is settled (0 if they lost
+// their bet outright). Blackjack pays 3:2; a push returns just the bet.
+function bjResultReturn(bj, idx){
+  const p = bj.players[idx];
+  if(!p || p.bet<=0 || p.status==='bust') return 0;
+  const dealerTotal = bjHandTotal(bj.dealer.hand);
+  const dealerBJ = isBjBlackjack(bj.dealer.hand);
+  const myTotal = bjHandTotal(p.hand);
+  if(p.status==='blackjack') return dealerBJ ? p.bet : p.bet + Math.floor(p.bet*1.5);
+  if(dealerBJ) return 0;
+  if(dealerTotal>21 || myTotal>dealerTotal) return p.bet*2;
+  if(myTotal<dealerTotal) return 0;
+  return p.bet; // push
+}
+function bjResultLabel(bj, idx){
+  const p = bj.players[idx];
+  if(!p || p.bet<=0) return '';
+  if(p.status==='bust') return 'Bust — lost';
+  const dealerTotal = bjHandTotal(bj.dealer.hand);
+  const dealerBJ = isBjBlackjack(bj.dealer.hand);
+  const myTotal = bjHandTotal(p.hand);
+  if(p.status==='blackjack') return dealerBJ ? 'Push' : 'Blackjack! Won 3:2';
+  if(dealerBJ) return 'Dealer blackjack — lost';
+  if(dealerTotal>21) return 'Dealer bust — won';
+  if(myTotal>dealerTotal) return 'Won';
+  if(myTotal<dealerTotal) return 'Lost';
+  return 'Push';
+}
+
+function myBjIndex(){ return mode==='online' ? mySeatIndex : 0; }
+
+function getClaimedBjRounds(){
+  try{ return JSON.parse(localGet('claimedBjRounds')||'[]'); }catch(e){ return []; }
+}
+function markBjRoundClaimed(k){
+  const list = getClaimedBjRounds();
+  if(!list.includes(k)){
+    list.push(k);
+    if(list.length>200) list.splice(0, list.length-200);
+    localSet('claimedBjRounds', JSON.stringify(list));
+  }
+}
+function settleBjPayoutIfNeeded(){
+  if(!bjState || bjState.phase!=='payout') return;
+  const idx = myBjIndex();
+  const me = bjState.players[idx];
+  if(!me || me.bet<=0) return;
+  const k = 'bj:'+(mode==='online'?roomCode:'local')+':'+bjState.gid+':'+bjState.round;
+  if(getClaimedBjRounds().includes(k)) return;
+  const ret = bjResultReturn(bjState, idx);
+  markBjRoundClaimed(k);
+  if(ret>0) addCoins(ret);
+}
+
+function setBjStatus(msg, isErr){
+  const el = document.getElementById('bj-status');
+  if(!el) return;
+  el.textContent = msg || '';
+  el.classList.toggle('error', !!isErr);
+}
+
+/* ---- Actions ---- */
+async function bjMutateRoom(mutatorFn){
+  for(let attempt=0; attempt<3; attempt++){
+    if(attempt>0) await new Promise(r=>setTimeout(r, 400*attempt));
+    const room = await getRoom(roomCode);
+    if(!room || !room.blackjack) continue;
+    const bj = room.blackjack;
+    const result = mutatorFn(bj);
+    if(result===false) return true; // stale click / no longer valid — not a network failure
+    room.seq = (room.seq||0)+1;
+    const ok = await setRoom(roomCode, room);
+    if(ok){
+      bjState = bj; bjLastKnownSeq = room.seq;
+      renderBlackjack();
+      return true;
+    }
+  }
+  setBjStatus('Could not sync — check your connection.', true);
+  return false;
+}
+
+async function bjPlaceBet(amount){
+  if(!bjState) return;
+  const idx = myBjIndex();
+  if(coins < amount){ setBjStatus('Not enough coins for that bet.', true); return; }
+  if(mode!=='online'){
+    const me = bjState.players[idx];
+    if(!me || bjState.phase!=='betting' || me.status!=='betting') return;
+    coins -= amount; saveCoins(); updateCoinBadges();
+    me.bet = amount; me.status='placed';
+    renderBlackjack();
+    bjDriveLocal();
+    return;
+  }
+  const ok = await bjMutateRoom(bj=>{
+    const me = bj.players[idx];
+    if(!me || bj.phase!=='betting' || me.status!=='betting') return false;
+    me.bet = amount; me.status='placed';
+  });
+  if(ok){ coins -= amount; saveCoins(); updateCoinBadges(); bjTryAdvanceOnline(); }
+}
+async function bjHit(){
+  if(!bjState) return;
+  const idx = myBjIndex();
+  if(mode!=='online'){
+    if(bjState.phase!=='playing' || bjState.turnIndex!==idx) return;
+    const p = bjState.players[idx];
+    p.hand.push(bjState.deck.pop());
+    if(bjHandTotal(p.hand)>21) p.status='bust';
+    if(p.status!=='playing') bjAdvanceTurn(bjState);
+    renderBlackjack();
+    bjDriveLocal();
+    return;
+  }
+  await bjMutateRoom(bj=>{
+    if(bj.phase!=='playing' || bj.turnIndex!==idx) return false;
+    const p = bj.players[idx];
+    p.hand.push(bj.deck.pop());
+    if(bjHandTotal(p.hand)>21) p.status='bust';
+    if(p.status!=='playing') bjAdvanceTurn(bj);
+  });
+  bjTryAdvanceOnline();
+}
+async function bjStand(){
+  if(!bjState) return;
+  const idx = myBjIndex();
+  if(mode!=='online'){
+    if(bjState.phase!=='playing' || bjState.turnIndex!==idx) return;
+    bjState.players[idx].status='stand';
+    bjAdvanceTurn(bjState);
+    renderBlackjack();
+    bjDriveLocal();
+    return;
+  }
+  await bjMutateRoom(bj=>{
+    if(bj.phase!=='playing' || bj.turnIndex!==idx) return false;
+    bj.players[idx].status='stand';
+    bjAdvanceTurn(bj);
+  });
+  bjTryAdvanceOnline();
+}
+async function bjDouble(){
+  if(!bjState) return;
+  const idx = myBjIndex();
+  const meNow = bjState.players[idx];
+  if(!meNow || meNow.hand.length!==2){ setBjStatus('You can only double on your first two cards.', true); return; }
+  if(coins < meNow.bet){ setBjStatus('Not enough coins to double.', true); return; }
+  if(mode!=='online'){
+    if(bjState.phase!=='playing' || bjState.turnIndex!==idx) return;
+    coins -= meNow.bet; saveCoins(); updateCoinBadges();
+    meNow.bet *= 2;
+    meNow.hand.push(bjState.deck.pop());
+    meNow.status = bjHandTotal(meNow.hand)>21 ? 'bust' : 'doubled';
+    bjAdvanceTurn(bjState);
+    renderBlackjack();
+    bjDriveLocal();
+    return;
+  }
+  const extraCost = meNow.bet;
+  const ok = await bjMutateRoom(bj=>{
+    if(bj.phase!=='playing' || bj.turnIndex!==idx) return false;
+    const p = bj.players[idx];
+    if(p.hand.length!==2) return false;
+    p.bet *= 2;
+    p.hand.push(bj.deck.pop());
+    p.status = bjHandTotal(p.hand)>21 ? 'bust' : 'doubled';
+    bjAdvanceTurn(bj);
+  });
+  if(ok){ coins -= extraCost; saveCoins(); updateCoinBadges(); bjTryAdvanceOnline(); }
+}
+async function bjNextRound(){
+  if(!bjState || bjState.phase!=='payout') return;
+  if(mode!=='online'){
+    bjState.round += 1;
+    bjState.players.forEach(p=>{ p.hand=[]; p.bet=0; p.status='betting'; });
+    bjState.dealer = { hand:[], revealed:false };
+    if(bjState.deck.length<20) bjState.deck = shuffledDeck();
+    bjState.phase='betting';
+    renderBlackjack();
+    bjDriveLocal();
+    return;
+  }
+  await bjMutateRoom(bj=>{
+    if(bj.phase!=='payout') return false;
+    bj.round += 1;
+    bj.players.forEach(p=>{ p.hand=[]; p.bet=0; p.status='betting'; });
+    bj.dealer = { hand:[], revealed:false };
+    if(bj.deck.length<20) bj.deck = shuffledDeck();
+    bj.phase='betting';
+  });
+  bjTryAdvanceOnline();
+}
+
+/* ---- Local (offline vs bots) driver ---- */
+function bjDriveLocal(){
+  if(!bjState) return;
+  const changed = bjAutoStep(bjState);
+  renderBlackjack();
+  if(bjState.phase==='payout'){ settleBjPayoutIfNeeded(); renderBlackjack(); return; }
+  if(changed) setTimeout(bjDriveLocal, 550);
+}
+function newBlackjackGame(){
+  mode='local'; roomCode=null; isHost=false; mySeatIndex=0;
+  bjState = freshBlackjackState(['You','Bot Ann','Bot Ben','Bot Cleo'], [false,true,true,true]);
+  showScreen('screen-blackjack');
+  document.getElementById('bj-online-bar').hidden = true;
+  updateCoinBadges();
+  renderBlackjack();
+  bjDriveLocal();
+}
+
+/* ---- Online (room) driver ---- */
+async function bjTryAdvanceOnline(){
+  if(mode!=='online' || !isHost || bjHostBusy) return;
+  bjHostBusy = true;
+  try{
+    await bjMutateRoom(bj=>{
+      if(!bjAutoStep(bj)) return false;
+    });
+  } finally {
+    bjHostBusy = false;
+  }
+}
+function enterBlackjackScreen(room){
+  stopLobbyPolling();
+  mode='online';
+  const idx = room.seats.findIndex(s=>s && s.clientId===myClientId);
+  if(idx!==-1) mySeatIndex = idx;
+  bjState = room.blackjack;
+  bjLastKnownSeq = room.seq;
+  showScreen('screen-blackjack');
+  document.getElementById('bj-online-bar').hidden = false;
+  document.getElementById('bj-online-bar-code').textContent = roomCode;
+  updateCoinBadges();
+  renderBlackjack();
+  startBlackjackPolling();
+  if(isHost) bjTryAdvanceOnline();
+}
+function startBlackjackPolling(){
+  stopBlackjackPolling();
+  bjPollTimer = setInterval(async ()=>{
+    if(!roomCode || mode!=='online') return;
+    const room = await getRoom(roomCode);
+    if(!room || !room.blackjack) return;
+    if(room.seq !== bjLastKnownSeq){
+      bjState = room.blackjack;
+      bjLastKnownSeq = room.seq;
+      renderBlackjack();
+    }
+    settleBjPayoutIfNeeded();
+    if(isHost) bjTryAdvanceOnline();
+  }, 1800);
+}
+function stopBlackjackPolling(){ if(bjPollTimer){ clearInterval(bjPollTimer); bjPollTimer=null; } }
+
+/* ---- Rendering ---- */
+function renderBlackjack(){
+  const bj = bjState;
+  if(!bj) return;
+  const idx = myBjIndex();
+  const me = bj.players[idx];
+  updateCoinBadges();
+
+  const dealerWrap = document.getElementById('bj-dealer-hand');
+  dealerWrap.innerHTML = '';
+  const showHole = bj.dealer.revealed || bj.phase==='payout';
+  bj.dealer.hand.forEach((c,i)=>{
+    if(i===1 && !showHole){
+      const back = document.createElement('div');
+      back.className = 'card-back';
+      dealerWrap.appendChild(back);
+    } else {
+      dealerWrap.appendChild(cardEl(c));
+    }
+  });
+  document.getElementById('bj-dealer-total').textContent = bj.dealer.hand.length
+    ? (showHole ? '🪙'.replace('🪙','') + bjHandTotal(bj.dealer.hand) : bjHandTotal([bj.dealer.hand[0]])+' + ?')
+    : '';
+
+  const playersWrap = document.getElementById('bj-players-wrap');
+  playersWrap.innerHTML = '';
+  bj.players.forEach((p,i)=>{
+    const panel = document.createElement('div');
+    panel.className = 'bj-player-panel' + (bj.phase==='playing' && bj.turnIndex===i ? ' active-turn' : '');
+    const total = p.hand.length ? bjHandTotal(p.hand) : null;
+    let tag = '';
+    if(bj.phase==='payout' && p.bet>0){
+      const label = bjResultLabel(bj, i);
+      const cls = /won|blackjack|bust — lost|lost|dealer/i.test(label) ? (label.toLowerCase().includes('won')||label.toLowerCase().includes('blackjack! ') ? 'win' : (label==='Push'?'':'lose')) : '';
+      tag = `<span class="status-tag ${cls}">${escapeHtml(label)}</span>`;
+    } else if(p.status==='betting'){
+      tag = `<span class="status-tag">Betting…</span>`;
+    } else if(p.status==='bust'){
+      tag = `<span class="status-tag lose">Bust</span>`;
+    } else if(p.status==='blackjack'){
+      tag = `<span class="status-tag win">Blackjack!</span>`;
+    } else if(p.status==='playing' && bj.phase==='playing' && bj.turnIndex===i){
+      tag = `<span class="status-tag">Your turn</span>`;
+    } else if(p.status==='stand' || p.status==='doubled'){
+      tag = `<span class="status-tag">${p.status==='doubled'?'Doubled':'Stand'}</span>`;
+    }
+    const head = document.createElement('div');
+    head.className = 'bj-player-head';
+    head.innerHTML = `<span>${escapeHtml(p.name)}${i===idx?' (You)':''} ${p.bet>0?`· 🪙${p.bet}`:''} ${total!=null?`· ${total}`:''}</span>${tag}`;
+    const handWrap = document.createElement('div');
+    handWrap.className = 'bj-hand';
+    p.hand.forEach(c=> handWrap.appendChild(cardEl(c, {small:true})));
+    panel.appendChild(head);
+    panel.appendChild(handWrap);
+    playersWrap.appendChild(panel);
+  });
+
+  const betPanel = document.getElementById('bj-bet-panel');
+  const hitBtn = document.getElementById('btn-bj-hit');
+  const standBtn = document.getElementById('btn-bj-stand');
+  const doubleBtn = document.getElementById('btn-bj-double');
+  const nextBtn = document.getElementById('btn-bj-next-round');
+
+  betPanel.hidden = !(me && bj.phase==='betting' && me.status==='betting');
+  const myTurn = me && bj.phase==='playing' && bj.turnIndex===idx && me.status==='playing';
+  hitBtn.hidden = !myTurn;
+  standBtn.hidden = !myTurn;
+  doubleBtn.hidden = !(myTurn && me.hand.length===2 && coins>=me.bet);
+  nextBtn.hidden = bj.phase!=='payout';
+
+  if(bj.phase==='betting') setBjStatus(me && me.status==='betting' ? 'Choose a bet to join this round.' : 'Waiting for other players to bet…');
+  else if(bj.phase==='playing') setBjStatus(myTurn ? 'Your move — Hit, Stand, or Double.' : (me && me.status!=='playing' ? 'Waiting on the other players…' : ''));
+  else if(bj.phase==='dealer') setBjStatus("Dealer's turn…");
+  else if(bj.phase==='payout') setBjStatus('Round over — tap Next Round to keep playing.');
+}
+
+document.querySelectorAll('#bj-bet-panel .chip-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> bjPlaceBet(parseInt(btn.dataset.amt,10)));
+});
+document.getElementById('btn-bj-hit').addEventListener('click', bjHit);
+document.getElementById('btn-bj-stand').addEventListener('click', bjStand);
+document.getElementById('btn-bj-double').addEventListener('click', bjDouble);
+document.getElementById('btn-bj-next-round').addEventListener('click', bjNextRound);
+document.getElementById('btn-play-blackjack-bots').addEventListener('click', ()=>{ newBlackjackGame(); });
+function leaveBlackjackToMenu(){
+  stopBlackjackPolling();
+  mode='local'; roomCode=null; isHost=false;
+  bjState = null;
+  document.getElementById('bj-online-bar').hidden = true;
+  updateCoinBadges();
+  showScreen('screen-menu');
+}
+document.getElementById('fab-bj-menu').addEventListener('click', leaveBlackjackToMenu);
+document.getElementById('btn-bj-leave-table').addEventListener('click', leaveBlackjackToMenu);
+
 /* ===================== Wiring ===================== */
 document.getElementById('btn-play').addEventListener('click', humanPlay);
 document.getElementById('btn-pass').addEventListener('click', humanPass);
@@ -3347,19 +3869,28 @@ document.getElementById('btn-save-name').addEventListener('click', async ()=>{
 
 document.getElementById('btn-play-bots').addEventListener('click', ()=>{ newGame(); });
 
-document.getElementById('btn-create-room').addEventListener('click', async ()=>{
+async function createRoomWithType(gameType){
+  document.getElementById('game-type-modal').hidden = true;
   setMenuStatus('Creating room…');
   const room = {
-    hostClientId: myClientId, seq: 1, status: 'lobby',
+    hostClientId: myClientId, seq: 1, status: 'lobby', gameType,
     seats: [ {clientId:myClientId, name:myProfileName}, null, null, null ],
-    game: null
+    game: null, blackjack: null
   };
   const code = await createRoom(room);
   if(!code){ setMenuStatus('Could not create room: '+(lastStorageError||'unknown error'), true); return; }
   mode='online'; isHost=true; mySeatIndex=0; roomCode=code;
   setMenuStatus('');
   enterLobby(room);
+}
+document.getElementById('btn-create-room').addEventListener('click', ()=>{
+  document.getElementById('game-type-modal').hidden = false;
 });
+document.getElementById('btn-game-type-close').addEventListener('click', ()=>{
+  document.getElementById('game-type-modal').hidden = true;
+});
+document.getElementById('btn-choose-bigtwo').addEventListener('click', ()=> createRoomWithType('bigtwo'));
+document.getElementById('btn-choose-blackjack').addEventListener('click', ()=> createRoomWithType('blackjack'));
 
 document.getElementById('btn-join-room').addEventListener('click', async ()=>{
   let code = document.getElementById('join-code-input').value.trim();
@@ -3393,7 +3924,13 @@ document.getElementById('btn-start-game').addEventListener('click', async ()=>{
   room.seats = room.seats.map(s=> s ? s : {clientId:null, name:botNamesPool[bi++]||'Bot'});
   const names = room.seats.map(s=>s.name);
   const botFlags = room.seats.map(s=>!s.clientId);
-  room.game = freshGameState(names, botFlags);
+  if(room.gameType==='blackjack'){
+    room.blackjack = freshBlackjackState(names, botFlags);
+    room.game = null;
+  } else {
+    room.game = freshGameState(names, botFlags);
+    room.blackjack = null;
+  }
   room.status = 'playing';
   room.seq = (room.seq||0)+1;
   const ok = await setRoom(roomCode, room);
@@ -3405,6 +3942,7 @@ function leaveToMenu(){
   stopLobbyPolling();
   stopGamePolling();
   stopBattlePolling();
+  stopBlackjackPolling();
   mode='local'; roomCode=null; isHost=false;
   gameEpoch++; // invalidate any bot timer still pending from the game we're leaving
   document.getElementById('online-bar').hidden = true;
